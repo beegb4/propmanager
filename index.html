@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PropManager</title>
+<meta name="theme-color" content="#6B7C4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="PropManager">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236B7C4A'/><text x='50' y='72' font-size='62' font-family='Georgia' fill='white' text-anchor='middle' font-weight='bold'>P</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%236B7C4A'/><text x='50' y='72' font-size='62' font-family='Georgia' fill='white' text-anchor='middle' font-weight='bold'>P</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --beige:#F5F0E8; --beige-light:#EDE8DC; --white:#FFFFFF;
+    --olive:#6B7C4A; --olive-dark:#566239; --olive-soft:#E4E8D8;
+    --charcoal:#2C2C2C; --muted:#8A8678;
+    --red:#C0392B; --red-soft:#F6E2DF; --amber:#C98A2B; --amber-soft:#F6ECD9;
+    --blue:#3D6E8F; --blue-soft:#E0EAF0; --plum:#7E5A86; --plum-soft:#ECE0EF; --line:#E2DCCF;
+    --shadow:0 1px 2px rgba(44,44,44,.04),0 8px 24px rgba(86,98,57,.07);
+    --shadow-lg:0 4px 12px rgba(44,44,44,.08),0 20px 48px rgba(86,98,57,.12);
+    --radius:16px; --radius-sm:11px;
+    --display:'Fraunces',Georgia,serif; --body:'DM Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--body);background:var(--beige);color:var(--charcoal);-webkit-font-smoothing:antialiased;line-height:1.5}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:15px;color:var(--charcoal)}
+  h1,h2,h3,h4{font-family:var(--display);font-weight:600;line-height:1.15;letter-spacing:-.01em}
+  .tap{cursor:pointer} .link{cursor:pointer;border-bottom:1px dashed transparent;transition:.15s} .link:hover{border-color:currentColor}
+
+  #login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(107,124,74,.18),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(107,124,74,.12),transparent 55%),var(--beige)}
+  .login-card{width:100%;max-width:400px;background:var(--white);border-radius:24px;padding:40px 34px;box-shadow:var(--shadow-lg);border:1px solid var(--line);animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:6px}
+  .brand-mark{width:42px;height:42px;border-radius:12px;flex:none;background:linear-gradient(145deg,var(--olive),var(--olive-dark));display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:22px;box-shadow:0 4px 12px rgba(86,98,57,.3)}
+  .brand-name{font-family:var(--display);font-weight:700;font-size:25px;letter-spacing:-.02em} .brand-name span{color:var(--olive)}
+  .login-sub{color:var(--muted);font-size:14px;margin:14px 0 26px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  .field input,.field select{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--radius-sm);background:var(--beige);transition:.18s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--olive);background:#fff;box-shadow:0 0 0 4px rgba(107,124,74,.12)}
+  .btn-primary{width:100%;background:var(--olive);color:#fff;font-weight:600;font-size:15.5px;padding:13px;border-radius:var(--radius-sm);transition:.18s;margin-top:6px;box-shadow:0 4px 12px rgba(86,98,57,.25)}
+  .btn-primary:hover{background:var(--olive-dark);transform:translateY(-1px)}
+  .demo-hint{margin-top:20px;padding:11px 13px;background:var(--olive-soft);border-radius:10px;font-size:12.5px;color:var(--olive-dark);text-align:center}
+
+  #app{display:none;min-height:100%}
+  .shell{display:flex;min-height:100vh}
+  .sidebar{width:236px;flex:none;background:var(--white);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh}
+  .side-brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .side-brand .brand-mark{width:34px;height:34px;font-size:18px;border-radius:10px} .side-brand .brand-name{font-size:20px}
+  .nav{display:flex;flex-direction:column;gap:3px;margin-top:14px}
+  .nav button{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;font-weight:500;font-size:14.5px;color:var(--charcoal);transition:.15s;text-align:left;width:100%}
+  .nav button .ic{font-size:17px;width:20px;text-align:center}
+  .nav button:hover{background:var(--beige)}
+  .nav button.active{background:var(--olive);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(86,98,57,.22)}
+  .nav .badge{margin-left:auto;background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:19px;height:19px;border-radius:10px;display:grid;place-items:center;padding:0 5px}
+  .nav button.active .badge{background:#fff;color:var(--olive)}
+  .side-foot{margin-top:auto;padding-top:16px;border-top:1px solid var(--line)}
+  .side-user{display:flex;align-items:center;gap:11px;padding:6px 6px 12px}
+  .avatar{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:700;color:#fff;font-size:15px}
+  .side-user .nm{font-weight:600;font-size:14px} .side-user .rl{font-size:12px;color:var(--muted);text-transform:capitalize}
+  .btn-ghost{display:flex;align-items:center;gap:9px;width:100%;padding:10px 13px;border-radius:10px;color:var(--muted);font-size:13.5px;font-weight:500;transition:.15s}
+  .btn-ghost:hover{background:var(--red-soft);color:var(--red)}
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .back-fab{display:none;align-items:center;gap:5px;margin:22px 0 -8px 40px;padding:7px 14px;border-radius:20px;background:#fff;border:1px solid var(--line);font-weight:600;font-size:13.5px;color:var(--charcoal);box-shadow:var(--shadow);transition:.15s}
+  .back-fab:hover{background:var(--olive);color:#fff;border-color:var(--olive)}
+  .content{padding:24px 40px 40px;max-width:1180px;width:100%;margin:0 auto;flex:1}
+  .page-head{margin-bottom:26px}
+  .page-head .eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--olive);margin-bottom:5px}
+  .page-head h1{font-size:32px} .page-head p{color:var(--muted);margin-top:6px;font-size:14.5px}
+
+  .grid{display:grid;gap:18px}
+  .g-2{grid-template-columns:repeat(2,1fr)} .g-3{grid-template-columns:repeat(3,1fr)} .g-4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+  .card h3{font-size:17px;margin-bottom:2px}
+  .card .card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .card .card-head .ic{font-size:19px} .card .card-head .count{margin-left:auto;font-size:13px;color:var(--muted);font-weight:600}
+  .stat{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .stat .lab{font-size:13px;color:var(--muted);font-weight:600} .stat .val{font-family:var(--display);font-size:38px;font-weight:600;line-height:1;margin-top:10px}
+  .stat .ic{position:absolute;top:16px;right:18px;font-size:22px;opacity:.45}
+  .stat.accent-red .val{color:var(--red)} .stat.accent-blue .val{color:var(--blue)} .stat.accent-olive .val{color:var(--olive)} .stat.accent-amber .val{color:var(--amber)}
+  .row-item{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--line)} .row-item:last-child{border-bottom:none}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .dot.red{background:var(--red)} .dot.amber{background:var(--amber)} .dot.olive{background:var(--olive)} .dot.blue{background:var(--blue)} .dot.plum{background:var(--plum)}
+  .row-item .ri-main{font-weight:600;font-size:14.5px} .row-item .ri-sub{font-size:13px;color:var(--muted);margin-top:1px} .row-item .ri-right{margin-left:auto;text-align:right;display:flex;gap:6px;align-items:center}
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+  .pill.red{background:var(--red-soft);color:var(--red)} .pill.amber{background:var(--amber-soft);color:var(--amber)} .pill.olive{background:var(--olive-soft);color:var(--olive-dark)}
+  .pill.blue{background:var(--blue-soft);color:var(--blue)} .pill.plum{background:var(--plum-soft);color:var(--plum)} .pill.grey{background:var(--beige-light);color:var(--muted)}
+  .empty{color:var(--muted);font-size:14px;padding:18px 0;text-align:center;font-style:italic}
+
+  .form-section{margin-bottom:22px}
+  .form-section .sec-title{display:flex;align-items:center;gap:9px;font-family:var(--display);font-weight:600;font-size:17px;margin-bottom:14px}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+  .fg label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.02em}
+  .fg input,.fg select,.fg textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:var(--beige);transition:.16s}
+  .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--olive);background:#fff;box-shadow:0 0 0 4px rgba(107,124,74,.1)}
+  .fg textarea{resize:vertical;min-height:58px}
+  .checks{display:flex;flex-wrap:wrap;gap:9px}
+  .chk{display:flex;align-items:center;gap:8px;padding:9px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;transition:.15s;background:var(--beige);user-select:none}
+  .chk:hover{border-color:var(--olive)} .chk input{accent-color:var(--olive);width:17px;height:17px;cursor:pointer} .chk.on{background:var(--olive-soft);border-color:var(--olive)}
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;width:fit-content;background:var(--beige)}
+  .stepper button{width:40px;height:42px;font-size:20px;color:var(--olive);font-weight:600;transition:.12s} .stepper button:hover{background:var(--olive-soft)}
+  .stepper .num{min-width:48px;text-align:center;font-weight:700;font-size:16px}
+  .form-actions{display:flex;gap:12px;margin-top:8px}
+  .btn{padding:12px 22px;border-radius:11px;font-weight:600;font-size:15px;transition:.16s}
+  .btn.green{background:var(--olive);color:#fff;box-shadow:0 4px 12px rgba(86,98,57,.22)} .btn.green:hover{background:var(--olive-dark);transform:translateY(-1px)}
+  .btn.subtle{background:var(--beige-light);color:var(--charcoal)} .btn.subtle:hover{background:var(--line)}
+  .btn.tiny{padding:7px 13px;font-size:13px;border-radius:9px}
+  .btn.danger{background:var(--red-soft);color:var(--red)} .btn.danger:hover{background:var(--red);color:#fff}
+
+  .tbl{width:100%;border-collapse:collapse;font-size:14px}
+  .tbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1.5px solid var(--line)}
+  .tbl td{padding:12px;border-bottom:1px solid var(--line);vertical-align:top} .tbl tr:last-child td{border-bottom:none} .tbl tr:hover td{background:var(--beige)}
+
+  .villa-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .villa-chips button{padding:8px 15px;border-radius:20px;font-size:13.5px;font-weight:600;background:#fff;border:1.5px solid var(--line);color:var(--charcoal);transition:.15s}
+  .villa-chips button:hover{border-color:var(--olive)} .villa-chips button.on{background:var(--olive);color:#fff;border-color:var(--olive)}
+
+  .week-nav{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .week-nav button.arrow{width:38px;height:38px;border-radius:10px;background:var(--white);border:1px solid var(--line);font-size:17px;font-weight:600;transition:.15s}
+  .week-nav button.arrow:hover{background:var(--olive);color:#fff;border-color:var(--olive)}
+  .week-nav .today-btn{padding:8px 15px;border-radius:10px;background:#fff;border:1px solid var(--line);font-weight:600;font-size:13.5px} .week-nav .today-btn:hover{background:var(--beige)}
+  .week-nav .wk-label{font-family:var(--display);font-weight:600;font-size:18px;margin-left:4px}
+  .cal-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:#fff;box-shadow:var(--shadow)}
+  .cal{border-collapse:collapse;width:100%;min-width:780px}
+  .cal th{padding:12px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:700;border-bottom:1.5px solid var(--line);text-align:center}
+  .cal th.villa-col{text-align:left;position:sticky;left:0;background:#fff;z-index:2;min-width:118px}
+  .cal td{border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:6px;text-align:center;vertical-align:top;min-width:92px;height:58px}
+  .cal td.villa-name{text-align:left;font-weight:600;font-size:13.5px;position:sticky;left:0;background:#fff;z-index:1;border-left:none}
+  .cal th.today,.cal td.today{background:var(--olive-soft)}
+  .cal-tag{display:block;font-size:10.5px;font-weight:700;padding:3px 5px;border-radius:6px;margin:2px 0;line-height:1.25}
+  .cal-tag.arr{background:var(--blue-soft);color:var(--blue)} .cal-tag.dep{background:var(--red-soft);color:var(--red)}
+  .cal-tag.occ{background:var(--olive-soft);color:var(--olive-dark)} .cal-tag.owner{background:var(--plum-soft);color:var(--plum)} .cal-tag.work{background:var(--beige-light);color:var(--charcoal)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:13px;color:var(--muted)} .legend span{display:inline-flex;align-items:center;gap:6px} .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .seg{display:inline-flex;background:var(--beige-light);border-radius:11px;padding:4px;gap:3px;margin-bottom:22px;flex-wrap:wrap}
+  .seg button{padding:8px 16px;border-radius:8px;font-weight:600;font-size:13.5px;color:var(--muted);transition:.15s} .seg button.on{background:#fff;color:var(--charcoal);box-shadow:var(--shadow)}
+  .list-row{display:flex;align-items:center;gap:13px;padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:10px} .list-row.arch{opacity:.6}
+  .list-row .nm{font-weight:600;font-size:15px} .list-row .meta{font-size:13px;color:var(--muted);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
+  .list-row .actions{margin-left:auto;display:flex;gap:8px;flex:none}
+  .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--beige-light);color:var(--muted)}
+  .tag.heat{background:var(--amber-soft);color:var(--amber)} .tag.cot{background:var(--blue-soft);color:var(--blue)} .tag.role{background:var(--olive-soft);color:var(--olive-dark);text-transform:capitalize}
+
+  .profile-hero{background:linear-gradient(140deg,var(--olive),var(--olive-dark));border-radius:var(--radius);padding:26px;color:#fff;margin-bottom:18px;box-shadow:var(--shadow);display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .profile-hero .pmark{width:58px;height:58px;border-radius:15px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:26px}
+  .profile-hero h1{font-size:30px;color:#fff} .profile-hero .ptags{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+  .profile-hero .ptags .tag{background:rgba(255,255,255,.2);color:#fff}
+  .profile-hero .pact{margin-left:auto;display:flex;gap:9px;flex-wrap:wrap}
+  .profile-hero .pact .btn.green{background:#fff;color:var(--olive-dark)} .profile-hero .pact .btn.subtle{background:rgba(255,255,255,.18);color:#fff}
+
+  .today-block{background:var(--beige);border:1px solid var(--line);border-radius:12px;padding:18px 20px;font-family:'DM Sans';font-size:14px;line-height:1.7;white-space:pre-wrap}
+  .report-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .print-head{display:none}
+
+  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:13px 22px;border-radius:12px;font-weight:500;font-size:14.5px;box-shadow:var(--shadow-lg);opacity:0;transition:.3s;z-index:200;display:flex;align-items:center;gap:9px}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .modal-bg{position:fixed;inset:0;background:rgba(44,44,44,.42);display:none;align-items:center;justify-content:center;padding:24px;z-index:150;backdrop-filter:blur(2px)}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:18px;padding:26px;width:100%;max-width:460px;box-shadow:var(--shadow-lg);animation:rise .3s ease both;max-height:88vh;overflow:auto}
+  .modal h3{font-size:21px;margin-bottom:18px} .modal-actions{display:flex;gap:11px;margin-top:22px}
+
+  .topbar{display:none} .mobnav{display:none}
+  @media(max-width:860px){
+    .g-4{grid-template-columns:repeat(2,1fr)} .g-3{grid-template-columns:1fr} .g-2{grid-template-columns:1fr}
+    .sidebar{display:none} .content{padding:14px 16px 96px} .back-fab{margin:14px 0 2px 0} .page-head h1{font-size:25px}
+    .topbar{display:flex;align-items:center;gap:9px;padding:12px 14px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+    .topbar .tb-back{width:34px;height:34px;border-radius:9px;background:var(--beige);font-size:20px;font-weight:600;display:none;place-items:center}
+    .topbar .brand-mark{width:30px;height:30px;font-size:16px;border-radius:9px} .topbar .brand-name{font-size:18px}
+    .topbar .tb-user{margin-left:auto;display:flex;align-items:center;gap:9px}
+    .topbar .tb-logout{font-size:13px;color:var(--muted);font-weight:600;padding:7px 11px;border-radius:9px;background:var(--beige)}
+    .mobnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:7px 2px 9px;z-index:100;box-shadow:0 -4px 20px rgba(44,44,44,.06)}
+    .mobnav button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;font-weight:600;color:var(--muted);padding:4px 5px;border-radius:9px;position:relative}
+    .mobnav button .ic{font-size:18px} .mobnav button.active{color:var(--olive)}
+    .mobnav .badge{position:absolute;top:-2px;right:2px;background:var(--red);color:#fff;font-size:9px;min-width:15px;height:15px;border-radius:8px;display:grid;place-items:center;font-weight:700}
+    .form-actions{flex-direction:column} .btn{width:100%;text-align:center} .villa-chips{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}
+    .profile-hero .pact{margin-left:0;width:100%}
+  }
+  @media print{
+    #login,.sidebar,.mobnav,.topbar,.back-fab,.no-print{display:none!important}
+    body,#app,.content{background:#fff} .content{padding:0;max-width:none}
+    .card{box-shadow:none;border:1px solid #ccc} .cal-wrap{box-shadow:none;overflow:visible}
+    .print-head{display:block;margin-bottom:14px} .print-head h2{font-size:20px} .print-head p{color:#555;font-size:13px}
+  }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <div class="brand"><div class="brand-mark">P</div><div class="brand-name">Prop<span>Manager</span></div></div>
+    <p class="login-sub">Villa &amp; pool maintenance, all in one place.</p>
+    <div class="field"><label for="loginName">Who's logging in?</label><select id="loginName"></select></div>
+    <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass" value="demo"></div>
+    <button class="btn-primary" id="loginBtn">Sign in</button>
+    <div class="demo-hint">🧪 <b>Demo mode</b> — pick any name, password is pre-filled. Your changes save in this browser until we connect Firebase.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-brand"><div class="brand-mark">P</div><div class="brand-name">Prop<span>Manager</span></div></div>
+      <nav class="nav" id="navDesktop"></nav>
+      <div class="side-foot">
+        <div class="side-user"><div class="avatar" id="sideAvatar"></div><div><div class="nm" id="sideName"></div><div class="rl" id="sideRole"></div></div></div>
+        <button class="btn-ghost" onclick="logout()"><span>↩</span> Sign out</button>
+      </div>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <button class="tb-back" id="tbBack" onclick="back()">‹</button>
+        <div class="brand-mark">P</div><div class="brand-name">Prop<span>Manager</span></div>
+        <div class="tb-user"><div class="avatar" id="tbAvatar" style="width:28px;height:28px;font-size:12px"></div><button class="tb-logout" onclick="logout()">Sign out</button></div>
+      </div>
+      <button class="back-fab" id="backBtn" onclick="back()">‹ Back</button>
+      <main class="content" id="content"></main>
+    </div>
+  </div>
+  <nav class="mobnav" id="navMobile"></nav>
+</div>
+
+<div id="toast"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+
+<script>
+/* ===== PropManager v3 — saves to this browser (localStorage). No backend yet. ===== */
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+const DAY=86400000;
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;}
+function ymd(d){const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');}
+function fromYmd(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function fmtShort(d){return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
+function sameDay(a,b){return ymd(a)===ymd(b);}
+function startOfWeek(d){const x=new Date(d);const day=(x.getDay()+6)%7;return addDays(x,-day);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const AV=['#6B7C4A','#3D6E8F','#C98A2B','#7E5A86','#C0392B','#4A8C7A'];
+function avColor(n){let s=0;for(const c of n)s+=c.charCodeAt(0);return AV[s%AV.length];}
+function initials(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+
+const state={user:null,view:'dashboard',history:[],season:'summer',weekOffset:0,poolVilla:null,profileVilla:null,editingRecord:null,settingsTab:'villas',reportTab:'week'};
+Object.assign(state,{staff:[],villas:[],records:[],guests:[],pending:[],resolved:[]});
+
+/* TASK definitions used in log + chips */
+const GARDEN=['Weeding','Lawn mowed','Strimmer','Spray weeds'];
+const EXTRAS=[['jwash','Jet wash (jwash)'],['cover','Pool cover'],['heating','Pool heating on'],['furn','Furniture out'],['arrivalCheck','Arrival check'],['moveFridge','Move fridge'],['troubleshoot','Troubleshooting'],['fuel','2-stroke fuel']];
+
+/* ---------- DEMO SEED ---------- */
+function seedDemo(){
+  state.season='summer';
+  state.staff=[{name:'Bee',role:'manager'},{name:'Maria',role:'staff'},{name:'Kostas',role:'staff'},{name:'Bas',role:'staff'},{name:'Admin (Boss)',role:'admin'}];
+  const vn=['Celini','Pelagos','Athena','Dia','Aquarious','Hera','Tamara','De Lujo','Poseidon','Tighi','Bella','Tauros','Nereus','Lofos','Isabelle','Boss'];
+  const heat={Aquarious:1,'De Lujo':1,Celini:1}, cot={'De Lujo':1,Pelagos:1};
+  state.villas=vn.map((n,i)=>({id:i+1,name:n,pool:n!=='Boss',heated:!!heat[n],garden:true,cot:!!cot[n],archived:false}));
+  // [villaId,daysAgo,cleaned,filter,topup,cl,ph,temp,tablets,phMinus,phPlus,shock,garden,extras{},notes,issues,duration,by]
+  const E=(o)=>Object.assign({jwash:false,cover:false,heating:false,furn:false,arrivalCheck:false,moveFridge:false,troubleshoot:false,fuel:false},o);
+  const rs=[
+    [1,1,'Done','Done',true,'1.4','7.2','27',2,0,0,false,['Lawn mowed','Weeding'],E({jwash:true}),'','Pool pump making noise','09:00-11:00','Bee'],
+    [2,5,'Done','—',false,'1.2','7.4','26',0,1,0,false,['Strimmer'],E({}),'','','08:30-09:45','Maria'],
+    [3,4,'Done','Done',false,'1.6','7.1','25',3,0,0,true,['Lawn mowed','Spray weeds'],E({jwash:true}),'','','10:00-11:30','Kostas'],
+    [4,2,'Done','—',true,'1.3','7.3','28',1,0,0,false,['Lawn mowed'],E({}),'','Gate lock broken — needs replacement','12:00-13:00','Bee'],
+    [5,6,'—','—',false,'0.8','7.6','24',0,0,1,false,[],E({heating:true,cover:true}),'','Filter needs replacing soon','','Bas'],
+    [6,3,'Done','Done',false,'1.5','7.2','26',2,0,0,false,['Weeding'],E({jwash:true,furn:true}),'Furniture to terrace','','07:30-10:00','Maria'],
+    [7,1,'Done','—',false,'1.4','7.0','27',2,1,0,false,['Lawn mowed'],E({}),'','','09:00-10:00','Bee'],
+    [9,5,'Done','Done',true,'1.1','7.5','25',0,0,0,false,['Strimmer'],E({moveFridge:true}),'','','11:00-12:00','Kostas'],
+    [11,2,'Done','—',false,'1.7','7.1','29',1,0,0,false,['Weeding'],E({}),'','','08:00-09:00','Bas'],
+    [13,8,'—','—',false,'0.6','7.8','23',0,0,2,false,[],E({troubleshoot:true}),'Checked lights & remotes','','','Maria'],
+    [3,18,'Done','Done',false,'1.5','7.2','24',2,0,0,true,['Lawn mowed'],E({}),'','','','Bee'],
+    [1,16,'Done','—',false,'1.4','7.3','26',2,0,0,true,['Weeding'],E({}),'','','','Kostas'],
+  ];
+  let id=1;state.records=rs.map(r=>({id:id++,villaId:r[0],date:addDays(TODAY,-r[1]),cleaned:r[2],filter:r[3],topup:r[4],chlorine:r[5],ph:r[6],temp:r[7],
+    tablets:r[8],phMinus:r[9],phPlus:r[10],shock:r[11],garden:r[12],...r[13],poolNote:'',gardenNote:'',notes:r[14],issues:r[15],duration:r[16],by:r[17]}));
+  const gs=[[1,-3,'15:40',2,'11:35',5,false,''],[2,-1,'11:10',4,'',9,false,'Heated pool'],[3,0,'',7,'',7,false,'Baby cot'],[5,-5,'',0,'14:55',6,false,''],
+    [6,2,'21:55',9,'',10,false,''],[4,4,'12:10',6,'',11,false,''],[8,1,'21:00',5,'',7,true,'Owner staying'],[9,-2,'',1,'07:15',3,false,'']];
+  let gid=1;state.guests=gs.map(g=>({id:gid++,villaId:g[0],arrive:addDays(TODAY,g[1]),aTime:g[2],depart:addDays(TODAY,g[3]),dTime:g[4],pax:g[5],owner:g[6],notes:g[7]}));
+  state.pending=[];state.resolved=[];
+  state.records.forEach(r=>{if(r.issues&&r.issues.trim())state.pending.push({id:'p'+r.id,villaId:r.villaId,text:r.issues.trim(),date:r.date,by:r.by});});
+}
+
+/* ---------- PERSISTENCE ---------- */
+function save(){try{localStorage.setItem('propmanager_v3',JSON.stringify({
+  season:state.season,villas:state.villas,staff:state.staff,
+  records:state.records.map(r=>({...r,date:ymd(r.date)})),
+  guests:state.guests.map(g=>({...g,arrive:ymd(g.arrive),depart:ymd(g.depart)})),
+  pending:state.pending.map(p=>({...p,date:p.date?ymd(p.date):null})),
+  resolved:state.resolved.map(r=>({...r,date:r.date?ymd(r.date):null,resolvedDate:r.resolvedDate?ymd(r.resolvedDate):null})),
+}));}catch(e){}}
+function load(){try{
+  const raw=localStorage.getItem('propmanager_v3');if(!raw)return false;
+  const d=JSON.parse(raw);
+  state.season=d.season||'summer';state.villas=d.villas||[];state.staff=d.staff||[];
+  state.records=(d.records||[]).map(r=>({...r,date:fromYmd(r.date)}));
+  state.guests=(d.guests||[]).map(g=>({...g,arrive:fromYmd(g.arrive),depart:fromYmd(g.depart)}));
+  state.pending=(d.pending||[]).map(p=>({...p,date:p.date?fromYmd(p.date):null}));
+  state.resolved=(d.resolved||[]).map(r=>({...r,date:r.date?fromYmd(r.date):null,resolvedDate:r.resolvedDate?fromYmd(r.resolvedDate):null}));
+  return state.villas.length>0;
+}catch(e){return false;}}
+
+/* ---------- COMPUTED ---------- */
+function villa(id){return state.villas.find(v=>v.id===id);}
+function activeVillas(){return state.villas.filter(v=>!v.archived);}
+function recsFor(id){return state.records.filter(r=>r.villaId===id).sort((a,b)=>b.date-a.date);}
+function recsOn(id,d){return state.records.filter(r=>r.villaId===id&&sameDay(r.date,d));}
+function threshold(){return state.season==='summer'?3:7;}
+function daysSinceClean(id){const r=recsFor(id).find(x=>x.cleaned==='Done');return r?Math.round((TODAY-r.date)/DAY):99;}
+function lastShock(id){const r=recsFor(id).find(x=>x.shock);return r?Math.round((TODAY-r.date)/DAY):null;}
+function urgentPools(){return activeVillas().filter(v=>v.pool&&daysSinceClean(v.id)>=threshold()).map(v=>({v,days:daysSinceClean(v.id)})).sort((a,b)=>b.days-a.days);}
+function shockDue(){return activeVillas().filter(v=>v.pool&&((lastShock(v.id)===null)||lastShock(v.id)>=14)).map(v=>({v,days:lastShock(v.id)}));}
+function occupiedNow(){return state.guests.filter(g=>g.arrive<=TODAY&&g.depart>=TODAY).map(g=>({g,v:villa(g.villaId)})).filter(x=>x.v);}
+function arrivalsOn(d){return state.guests.filter(g=>sameDay(g.arrive,d)).map(g=>({g,v:villa(g.villaId)})).filter(x=>x.v);}
+function departuresOn(d){return state.guests.filter(g=>sameDay(g.depart,d)).map(g=>({g,v:villa(g.villaId)})).filter(x=>x.v);}
+function pendingFor(id){return state.pending.filter(p=>p.villaId===id);}
+
+/* ---------- NAV ---------- */
+const NAV=[{id:'dashboard',label:'Dashboard',ic:'◫'},{id:'log',label:'Daily Log',ic:'✎'},{id:'pool',label:'Pool Tracker',ic:'≈'},{id:'guests',label:'Guest Tracker',ic:'☷'},{id:'report',label:'Report',ic:'▤'},{id:'settings',label:'Settings',ic:'⚙'}];
+function dashBadge(){return urgentPools().length+shockDue().length;}
+function buildNav(){
+  const b=dashBadge();
+  const active=v=>['log'].includes(state.view)&&v==='log'?'active':state.view===v?'active':(state.view==='profile'&&v==='pool')?'':'';
+  document.getElementById('navDesktop').innerHTML=NAV.map(n=>{const bd=(n.id==='dashboard'&&b>0)?`<span class="badge">${b}</span>`:'';
+    return `<button class="${state.view===n.id?'active':''}" onclick="go('${n.id}')"><span class="ic">${n.ic}</span> ${n.label}${bd}</button>`;}).join('');
+  const short={dashboard:'Home',log:'Log',pool:'Pool',guests:'Guests',report:'Report',settings:'More'};
+  document.getElementById('navMobile').innerHTML=NAV.map(n=>{const bd=(n.id==='dashboard'&&b>0)?`<span class="badge">${b}</span>`:'';
+    return `<button class="${state.view===n.id?'active':''}" onclick="go('${n.id}')"><span class="ic">${n.ic}</span>${short[n.id]}${bd}</button>`;}).join('');
+}
+function go(v){if(state.view!==v)state.history.push(state.view);if(v==='log'&&state.view!=='log')state.editingRecord=null;state.view=v;render();window.scrollTo(0,0);}
+function back(){if(state.history.length){state.view=state.history.pop();render();window.scrollTo(0,0);}}
+
+function render(){
+  buildNav();
+  document.getElementById('backBtn').style.display=state.history.length?'inline-flex':'none';
+  document.getElementById('tbBack').style.display=state.history.length?'grid':'none';
+  const v=state.view;
+  document.getElementById('content').innerHTML=
+    v==='dashboard'?viewDashboard():v==='log'?viewLog():v==='pool'?viewPool():v==='guests'?viewGuests():v==='report'?viewReport():v==='profile'?viewProfile():viewSettings();
+}
+
+/* ---------- DASHBOARD ---------- */
+function viewDashboard(){
+  const up=urgentPools(),sd=shockDue(),occ=occupiedNow(),arr=arrivalsOn(TODAY),dep=departuresOn(TODAY);
+  const h=new Date().getHours();const greet=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  let html=`<div class="page-head"><div class="eyebrow">${TODAY.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+    <h1>${greet}, ${esc(state.user.name)}</h1><p>Here's what needs your attention today.</p></div>`;
+  html+=`<div class="grid g-4" style="margin-bottom:18px">
+    <div class="stat accent-red tap" onclick="go('pool')"><span class="ic">≈</span><div class="lab">Pools need cleaning</div><div class="val">${up.length}</div></div>
+    <div class="stat accent-amber"><span class="ic">✦</span><div class="lab">Shock due</div><div class="val">${sd.length}</div></div>
+    <div class="stat accent-olive tap" onclick="go('guests')"><span class="ic">☷</span><div class="lab">Villas occupied</div><div class="val">${occ.length}</div></div>
+    <div class="stat accent-blue"><span class="ic">⚑</span><div class="lab">Pending issues</div><div class="val">${state.pending.length}</div></div></div>`;
+  html+=`<div class="grid g-2">`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">☷</span><h3>Occupied right now</h3><span class="count">do these pools early</span></div>`;
+  html+=occ.length?occ.map(({g,v})=>`<div class="row-item"><span class="dot ${g.owner?'plum':'olive'}"></span>
+    <div><div class="ri-main link" onclick="openProfile(${v.id})">${esc(v.name)} ${g.owner?'<span class="pill plum" style="font-size:10px">OWNER</span>':''} ${g.notes?'<span class="pill grey" style="font-size:10px">'+esc(g.notes)+'</span>':''}</div>
+    <div class="ri-sub">${g.pax} guest${g.pax==1?'':'s'} · until ${fmtShort(g.depart)}${g.dTime?' '+esc(g.dTime):''}</div></div></div>`).join(''):`<div class="empty">No villas occupied today</div>`;
+  html+=`</div>`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">≈</span><h3>Pools needing attention</h3><span class="count">every ${threshold()}d (${state.season})</span></div>`;
+  html+=up.length?up.map(({v,days})=>`<div class="row-item"><span class="dot ${days>=threshold()+2?'red':'amber'}"></span>
+    <div><div class="ri-main link" onclick="openProfile(${v.id})">${esc(v.name)}</div><div class="ri-sub">last cleaned ${days>=99?'no record':days+' day'+(days==1?'':'s')+' ago'}</div></div>
+    <div class="ri-right"><span class="pill ${days>=threshold()+2?'red':'amber'}">${days>=99?'overdue':days+'d'}</span></div></div>`).join(''):`<div class="empty">All pools within schedule 🎉</div>`;
+  html+=`</div>`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">✦</span><h3>Shock treatment due</h3><span class="count">1st &amp; 15th</span></div>`;
+  html+=sd.length?sd.slice(0,6).map(({v,days})=>`<div class="row-item"><span class="dot amber"></span>
+    <div><div class="ri-main link" onclick="openProfile(${v.id})">${esc(v.name)}</div><div class="ri-sub">${days===null?'no shock on record':'last shock '+days+' days ago'}</div></div>
+    <div class="ri-right"><span class="pill amber">due</span></div></div>`).join(''):`<div class="empty">None due 🎉</div>`;
+  html+=`</div>`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">⇄</span><h3>Arrivals &amp; departures today</h3></div>`;
+  if(!arr.length&&!dep.length)html+=`<div class="empty">Nothing scheduled today</div>`;
+  else{html+=arr.map(({g,v})=>`<div class="row-item"><span class="dot ${g.owner?'plum':'blue'}"></span><div><div class="ri-main link" onclick="openProfile(${v.id})">${esc(v.name)}</div>
+    <div class="ri-sub">${g.owner?'owner':g.pax+' guests'} arriving${g.aTime?' · '+esc(g.aTime):''}</div></div><div class="ri-right"><span class="pill ${g.owner?'plum':'blue'}">${g.owner?'owner':'arrival'}</span></div></div>`).join('');
+    html+=dep.map(({g,v})=>`<div class="row-item"><span class="dot red"></span><div><div class="ri-main link" onclick="openProfile(${v.id})">${esc(v.name)}</div>
+    <div class="ri-sub">checking out${g.dTime?' · '+esc(g.dTime):''}</div></div><div class="ri-right"><span class="pill red">departure</span></div></div>`).join('');}
+  html+=`</div></div>`;
+  html+=`<div class="card" style="margin-top:18px"><div class="card-head"><span class="ic">⚑</span><h3>Pending issues</h3><span class="count">across all villas</span></div>`;
+  html+=state.pending.length?state.pending.map(p=>{const v=villa(p.villaId);return `<div class="row-item"><span class="dot red"></span>
+    <div><div class="ri-main link" onclick="openProfile(${p.villaId})">${v?esc(v.name):'—'}</div><div class="ri-sub">${esc(p.text)}${p.date?' · '+fmtShort(p.date):''}</div></div>
+    <div class="ri-right"><button class="btn tiny subtle" onclick="resolvePending('${p.id}')">Mark done</button></div></div>`;}).join(''):`<div class="empty">No pending issues</div>`;
+  if(state.resolved.length){html+=`<div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Recently resolved</div>`;
+    html+=state.resolved.slice(-4).reverse().map(r=>{const v=villa(r.villaId);return `<div class="row-item" style="padding:7px 0"><span class="dot olive"></span>
+      <div><div class="ri-main" style="font-size:13.5px;text-decoration:line-through;color:var(--muted)">${v?esc(v.name):'—'}: ${esc(r.text)}</div>
+      <div class="ri-sub">done by ${esc(r.resolvedBy||'—')}${r.resolvedDate?' · '+fmtShort(r.resolvedDate):''}</div></div></div>`;}).join('');html+=`</div>`;}
+  html+=`</div>`;return html;
+}
+function resolvePending(id){const p=state.pending.find(x=>x.id===id);if(!p)return;
+  state.resolved.push({villaId:p.villaId,text:p.text,date:p.date,resolvedBy:state.user.name,resolvedDate:new Date(TODAY)});
+  state.pending=state.pending.filter(x=>x.id!==id);save();toast('Issue marked done ✓ (kept in history)');render();}
+
+/* ---------- DAILY LOG (create + edit) ---------- */
+function chk(id,label,on){return `<label class="chk ${on?'on':''}" onclick="this.classList.toggle('on')"><input type="checkbox" id="${id}" ${on?'checked':''} onclick="event.stopPropagation();this.closest('.chk').classList.toggle('on',this.checked)"> ${label}</label>`;}
+function stepper(id,val){val=val||0;return `<div class="stepper"><button type="button" onclick="step('${id}',-1)">−</button><span class="num" id="${id}_n">${val}</span><button type="button" onclick="step('${id}',1)">+</button><input type="hidden" id="${id}" value="${val}"></div>`;}
+function step(id,d){const inp=document.getElementById(id);let v=Math.max(0,(+inp.value||0)+d);inp.value=v;document.getElementById(id+'_n').textContent=v;}
+function tv(v){return v&&v!=='—'?esc(v):'';}
+function viewLog(){
+  const r=state.editingRecord?state.records.find(x=>x.id===state.editingRecord):null;
+  const d=r||{};const opts=activeVillas().map(v=>`<option value="${v.id}" ${v.id===d.villaId?'selected':''}>${esc(v.name)}</option>`).join('');
+  return `<div class="page-head"><div class="eyebrow">${r?'Edit entry · '+fmtShort(d.date):'New entry'}</div><h1>${r?'Edit Log':'Daily Log'}</h1>
+    <p>Record what you did. Anything in <b>Issues</b> is tracked for that villa until resolved.</p></div>
+  <div class="card" style="max-width:780px">
+    <div class="form-section"><div class="sec-title">🏡 Villa</div><div class="fg"><label>Which villa?</label><select id="f_villa">${opts}</select></div></div>
+    <div class="form-section"><div class="sec-title">≈ Pool</div>
+      <div class="checks" style="margin-bottom:14px">${chk('f_cleaned','Pool cleaned',d.cleaned==='Done')}${chk('f_filter','Filter cleaned',d.filter==='Done')}${chk('f_topup','Water topped up',d.topup)}${chk('f_jwash','Jet wash (jwash)',d.jwash)}${chk('f_cover','Pool cover',d.cover)}${chk('f_heating','Pool heating on',d.heating)}</div>
+      <div class="form-grid" style="margin-bottom:14px"><div class="fg"><label>Chlorine</label><input id="f_chlorine" value="${tv(d.chlorine)}" placeholder="e.g. 1.5"></div>
+        <div class="fg"><label>pH</label><input id="f_ph" value="${tv(d.ph)}" placeholder="e.g. 7.2"></div><div class="fg"><label>Temp °C</label><input id="f_temp" value="${tv(d.temp)}" placeholder="e.g. 26"></div></div>
+      <div class="fg"><label>Pool — anything else?</label><textarea id="f_poolnote" placeholder="Rare extra pool things…">${esc(d.poolNote||'')}</textarea></div></div>
+    <div class="form-section"><div class="sec-title">✦ Chemicals added</div>
+      <div class="form-grid"><div class="fg"><label>Chlorine tablets</label>${stepper('f_tablets',d.tablets)}</div>
+        <div class="fg"><label>pH minus (cups)</label>${stepper('f_phminus',d.phMinus)}</div><div class="fg"><label>pH plus (cups)</label>${stepper('f_phplus',d.phPlus)}</div></div>
+      <div class="checks" style="margin-top:14px">${chk('f_shock','Shock treatment given',d.shock)}</div></div>
+    <div class="form-section"><div class="sec-title">🌿 Garden</div>
+      <div class="checks" style="margin-bottom:14px">${GARDEN.map((g,i)=>chk('f_g'+i,g,(d.garden||[]).includes(g))).join('')}</div>
+      <div class="fg"><label>Garden — anything else?</label><textarea id="f_gardennote" placeholder="Rare extra garden things…">${esc(d.gardenNote||'')}</textarea></div></div>
+    <div class="form-section"><div class="sec-title">🧰 Other tasks</div>
+      <div class="checks">${EXTRAS.map(([k,l])=>chk('f_'+k,l,d[k])).join('')}</div></div>
+    <div class="form-section"><div class="sec-title">📝 Notes &amp; issues</div>
+      <div class="fg" style="margin-bottom:14px"><label>Notes (just for today)</label><textarea id="f_notes" placeholder="General comments…">${esc(d.notes||'')}</textarea></div>
+      <div class="fg"><label>⚑ Issues (stays on this villa until resolved)</label><textarea id="f_issues" placeholder="Broken gate, pump noise, follow-up…">${esc(d.issues||'')}</textarea></div></div>
+    <div class="form-section"><div class="sec-title">⏱ Time</div><div class="fg" style="max-width:280px"><label>Work duration</label><input id="f_duration" value="${esc(d.duration||'')}" placeholder="e.g. 09:00–11:00"></div></div>
+    <div class="form-actions"><button class="btn green" onclick="saveLog()">${r?'Save changes':'Save entry'}</button><button class="btn subtle" onclick="back()">Cancel</button></div>
+  </div>`;
+}
+function saveLog(){
+  const get=x=>document.getElementById(x),id=+get('f_villa').value;
+  const garden=GARDEN.filter((g,i)=>get('f_g'+i).checked);
+  const issues=get('f_issues').value.trim();
+  const extras={};EXTRAS.forEach(([k])=>extras[k]=get('f_'+k).checked);
+  const base={villaId:id,cleaned:get('f_cleaned').checked?'Done':'—',filter:get('f_filter').checked?'Done':'—',topup:get('f_topup').checked,
+    chlorine:get('f_chlorine').value||'—',ph:get('f_ph').value||'—',temp:get('f_temp').value||'—',
+    tablets:+get('f_tablets').value||0,phMinus:+get('f_phminus').value||0,phPlus:+get('f_phplus').value||0,shock:get('f_shock').checked,
+    garden,...extras,poolNote:get('f_poolnote').value,gardenNote:get('f_gardennote').value,notes:get('f_notes').value,issues,duration:get('f_duration').value};
+  if(state.editingRecord){const r=state.records.find(x=>x.id===state.editingRecord);Object.assign(r,base);
+    save();toast('Entry updated ✓');state.editingRecord=null;state.poolVilla=id;go('pool');}
+  else{const rec={id:Date.now(),date:new Date(TODAY),by:state.user.name,...base};state.records.unshift(rec);
+    if(issues)state.pending.push({id:'p'+rec.id,villaId:id,text:issues,date:new Date(TODAY),by:state.user.name});
+    save();toast('Saved for '+villa(id).name+(issues?' · issue tracked ⚑':' ✓'));state.poolVilla=id;go('pool');}
+}
+function editRecord(id){state.editingRecord=id;go('log');}
+
+/* ---------- POOL TRACKER ---------- */
+function recordRows(recs){return recs.map(r=>{const ch=workChips(r);
+  return `<tr><td><b>${fmtShort(r.date)}</b></td><td>${r.cleaned==='Done'?'<span class="pill olive">✓</span>':'<span class="pill grey">—</span>'}</td>
+    <td>${esc(r.chlorine)}</td><td>${esc(r.ph)}</td><td>${esc(r.temp)}°</td><td>${ch.length?ch.join(' · '):'—'}</td><td>${esc(r.by||'—')}</td>
+    <td style="white-space:nowrap"><button class="btn tiny subtle" onclick="editRecord(${r.id})">Edit</button> <button class="btn tiny danger" onclick="delRecord(${r.id})">✕</button></td></tr>`;}).join('');}
+function viewPool(){
+  const av=activeVillas();if(!av.length)return emptyState('No villas yet — add one in Settings.');
+  if(!state.poolVilla||!villa(state.poolVilla)||villa(state.poolVilla).archived)state.poolVilla=av[0].id;
+  const id=state.poolVilla,v=villa(id),recs=recsFor(id),days=daysSinceClean(id),sh=lastShock(id),th=threshold(),last=recs[0];
+  let html=`<div class="page-head"><div class="eyebrow">Pool history</div><h1>Pool Tracker</h1><p>Tap a villa for its readings &amp; history. Edit or remove any entry on the right.</p></div>`;
+  html+=`<div class="villa-chips">${av.map(x=>`<button class="${x.id===id?'on':''}" onclick="setPool(${x.id})">${esc(x.name)}</button>`).join('')}</div>`;
+  html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <h3 style="font-size:20px">${esc(v.name)}</h3><button class="btn subtle tiny" onclick="openProfile(${id})">Open full profile →</button></div>`;
+  html+=`<div class="grid g-3" style="margin-bottom:18px">
+    <div class="stat ${days>=th?'accent-red':'accent-olive'}"><span class="ic">≈</span><div class="lab">Days since clean</div><div class="val">${days>=99?'—':days}</div>
+      <div style="margin-top:8px"><span class="pill ${days>=th?'red':'olive'}">${days>=99?'no record':days>=th?'needs cleaning':'on schedule'}</span></div></div>
+    <div class="stat accent-amber"><span class="ic">✦</span><div class="lab">Last shock</div><div class="val">${sh===null?'—':sh+'d'}</div>
+      <div style="margin-top:8px"><span class="pill ${sh===null||sh>=14?'amber':'grey'}">${sh===null?'none on record':sh>=14?'due now':'ok'}</span></div></div>
+    <div class="stat accent-blue"><span class="ic">⬡</span><div class="lab">Last readings</div>
+      <div style="margin-top:12px;font-size:14px;line-height:1.9">${last?`Chlorine <b>${esc(last.chlorine)}</b> · pH <b>${esc(last.ph)}</b> · <b>${esc(last.temp)}°C</b>`:'No readings yet'}</div></div></div>`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">≈</span><h3>History</h3><span class="count">${recs.length} record${recs.length==1?'':'s'}</span></div>`;
+  html+=recs.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th>Clean</th><th>Cl</th><th>pH</th><th>Temp</th><th>Work</th><th>By</th><th></th></tr></thead><tbody>${recordRows(recs)}</tbody></table></div>`:`<div class="empty">No records yet</div>`;
+  html+=`</div>`;return html;
+}
+function setPool(id){state.poolVilla=id;render();}
+function delRecord(id){openConfirm('Remove this entry?',()=>{state.records=state.records.filter(r=>r.id!==id);save();toast('Entry removed');render();});}
+
+/* ---------- VILLA PROFILE ---------- */
+function viewProfile(){
+  const v=villa(state.profileVilla);if(!v)return emptyState('Villa not found.');
+  const recs=recsFor(v.id),days=daysSinceClean(v.id),sh=lastShock(v.id),th=threshold();
+  const open=pendingFor(v.id),up=state.guests.filter(g=>g.villaId===v.id&&g.depart>=TODAY).sort((a,b)=>a.arrive-b.arrive);
+  const occ=state.guests.find(g=>g.villaId===v.id&&g.arrive<=TODAY&&g.depart>=TODAY);
+  let html=`<div class="profile-hero"><div class="pmark">${esc(initials(v.name))}</div>
+    <div><h1>${esc(v.name)}</h1><div class="ptags">${v.pool?'<span class="tag">Pool</span>':'<span class="tag">No pool</span>'}${v.heated?'<span class="tag">Heated **</span>':''}${v.garden?'<span class="tag">Garden</span>':''}${v.cot?'<span class="tag">Baby cot *</span>':''}${occ?'<span class="tag">Occupied now</span>':''}</div></div>
+    <div class="pact"><button class="btn green tiny" onclick="logForVilla(${v.id})">+ Log work here</button><button class="btn subtle tiny" onclick="setPool(${v.id});go('pool')">Pool history</button></div></div>`;
+  html+=`<div class="grid g-3" style="margin-bottom:18px">
+    <div class="stat ${days>=th?'accent-red':'accent-olive'}"><span class="ic">≈</span><div class="lab">Days since clean</div><div class="val">${days>=99?'—':days}</div></div>
+    <div class="stat accent-amber"><span class="ic">✦</span><div class="lab">Last shock</div><div class="val">${sh===null?'—':sh+'d'}</div></div>
+    <div class="stat accent-blue"><span class="ic">☷</span><div class="lab">Status</div><div style="margin-top:12px;font-size:15px;font-weight:600">${occ?(occ.owner?'Owner in':occ.pax+' guests in'):'Empty'}</div>
+      <div class="ri-sub" style="margin-top:4px">${occ?'until '+fmtShort(occ.depart):'—'}</div></div></div>`;
+  html+=`<div class="grid g-2">`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">⚑</span><h3>Open issues</h3></div>`;
+  html+=open.length?open.map(p=>`<div class="row-item"><span class="dot red"></span><div><div class="ri-main">${esc(p.text)}</div><div class="ri-sub">${p.date?fmtShort(p.date):''} · ${esc(p.by||'')}</div></div>
+    <div class="ri-right"><button class="btn tiny subtle" onclick="resolvePending('${p.id}')">Done</button></div></div>`).join(''):`<div class="empty">No open issues 🎉</div>`;
+  html+=`</div>`;
+  html+=`<div class="card"><div class="card-head"><span class="ic">☷</span><h3>Upcoming guests</h3></div>`;
+  html+=up.length?up.map(g=>`<div class="row-item"><span class="dot ${g.owner?'plum':'blue'}"></span><div><div class="ri-main">${g.owner?'Owner':g.pax+' guests'}${g.notes?' · '+esc(g.notes):''}</div>
+    <div class="ri-sub">${fmtShort(g.arrive)}${g.aTime?' '+esc(g.aTime):''} → ${fmtShort(g.depart)}${g.dTime?' '+esc(g.dTime):''}</div></div></div>`).join(''):`<div class="empty">Nothing upcoming</div>`;
+  html+=`</div></div>`;
+  html+=`<div class="card" style="margin-top:18px"><div class="card-head"><span class="ic">≈</span><h3>Recent work</h3><span class="count">${recs.length} total</span></div>`;
+  html+=recs.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Date</th><th>Clean</th><th>Cl</th><th>pH</th><th>Temp</th><th>Work</th><th>By</th><th></th></tr></thead><tbody>${recordRows(recs.slice(0,8))}</tbody></table></div>`:`<div class="empty">No work logged yet</div>`;
+  html+=`</div>`;return html;
+}
+function openProfile(id){state.profileVilla=id;go('profile');}
+function logForVilla(id){state.editingRecord=null;state.history.push(state.view);state.view='log';render();window.scrollTo(0,0);
+  setTimeout(()=>{const sel=document.getElementById('f_villa');if(sel){sel.value=id;}},0);}
+
+/* ---------- GUEST TRACKER ---------- */
+function viewGuests(){
+  const ws=addDays(startOfWeek(TODAY),state.weekOffset*7),days=[...Array(7)].map((_,i)=>addDays(ws,i)),we=days[6];
+  const occ=occupiedNow(),active=activeVillas().filter(v=>state.guests.some(g=>g.villaId===v.id&&g.depart>=ws&&g.arrive<=we));
+  const wkBookings=state.guests.filter(g=>g.depart>=ws&&g.arrive<=we).sort((a,b)=>a.arrive-b.arrive);
+  let html=`<div class="page-head"><div class="eyebrow">Weekly plan</div><h1>Guest Tracker</h1><p>Who's arriving, staying and leaving — drives your morning pool order.</p></div>`;
+  html+=`<div class="week-nav no-print"><button class="arrow" onclick="weekStep(-1)">‹</button><button class="arrow" onclick="weekStep(1)">›</button>
+    <button class="today-btn" onclick="weekStep(0,true)">This week</button><span class="wk-label">${fmtShort(ws)} – ${fmtShort(we)}</span>
+    <button class="btn green tiny" style="margin-left:auto" onclick="addBooking()">+ Add booking</button></div>`;
+  html+=`<div class="card" style="margin-bottom:18px"><div class="card-head"><span class="ic">☷</span><h3>Occupied right now</h3><span class="count">${occ.length} villa${occ.length==1?'':'s'}</span></div>`;
+  html+=occ.length?`<div style="display:flex;flex-wrap:wrap;gap:9px">`+occ.map(({g,v})=>`<span class="pill ${g.owner?'plum':'olive'} tap" style="padding:7px 13px;font-size:13px" onclick="openProfile(${v.id})">${esc(v.name)} · ${g.owner?'owner':g.pax+' guests'}</span>`).join('')+`</div>`:`<div class="empty">No villas occupied today</div>`;
+  html+=`</div>`;
+  html+=`<div class="cal-wrap"><table class="cal"><thead><tr><th class="villa-col">Villa</th>${days.map(d=>`<th class="${sameDay(d,TODAY)?'today':''}">${d.toLocaleDateString('en-GB',{weekday:'short'})}<br>${d.getDate()}</th>`).join('')}</tr></thead><tbody>`;
+  if(!active.length)html+=`<tr><td class="villa-name">—</td><td colspan="7" class="empty">No guest activity this week — tap "Add booking"</td></tr>`;
+  else html+=active.map(v=>{let row=`<tr><td class="villa-name link" onclick="openProfile(${v.id})">${esc(v.name)}</td>`;
+    days.forEach(d=>{let cell='';state.guests.filter(g=>g.villaId===v.id).forEach(g=>{
+      if(sameDay(g.arrive,d))cell+=g.owner?`<span class="cal-tag owner">OWNER${g.aTime?' '+esc(g.aTime):''}</span>`:`<span class="cal-tag arr">ARR ${g.pax}p${g.aTime?' '+esc(g.aTime):''}</span>`;
+      if(sameDay(g.depart,d))cell+=`<span class="cal-tag dep">DEP${g.dTime?' '+esc(g.dTime):''}</span>`;
+      if(g.arrive<d&&g.depart>d)cell+=`<span class="cal-tag occ">in</span>`;});
+      row+=`<td class="${sameDay(d,TODAY)?'today':''}">${cell}</td>`;});return row+`</tr>`;}).join('');
+  html+=`</tbody></table></div>`;
+  html+=`<div class="legend"><span><i style="background:var(--blue)"></i> Arrival</span><span><i style="background:var(--plum)"></i> Owner (***)</span><span><i style="background:var(--red)"></i> Departure</span><span><i style="background:var(--olive)"></i> Occupied</span></div>`;
+  html+=`<div class="card" style="margin-top:18px"><div class="card-head"><span class="ic">☰</span><h3>Bookings this week</h3></div>`;
+  html+=wkBookings.length?wkBookings.map(g=>{const v=villa(g.villaId);return `<div class="list-row" style="margin-bottom:8px">
+    <div><div class="nm">${v?esc(v.name):'—'} ${g.owner?'<span class="tag" style="background:var(--plum-soft);color:var(--plum)">OWNER</span>':''}</div>
+    <div class="meta">${fmtShort(g.arrive)}${g.aTime?' '+esc(g.aTime):''} → ${fmtShort(g.depart)}${g.dTime?' '+esc(g.dTime):''} · ${g.pax} pax${g.notes?' · '+esc(g.notes):''}</div></div>
+    <div class="actions"><button class="btn tiny subtle" onclick="addBooking(${g.id})">Edit</button><button class="btn tiny danger" onclick="delBooking(${g.id})">✕</button></div></div>`;}).join(''):`<div class="empty">No bookings this week</div>`;
+  html+=`</div>`;return html;
+}
+function weekStep(d,reset){if(reset)state.weekOffset=0;else state.weekOffset+=d;render();}
+function addBooking(id){
+  const g=id?state.guests.find(x=>x.id===id):{villaId:(activeVillas()[0]||{}).id,arrive:TODAY,aTime:'',depart:addDays(TODAY,3),dTime:'',pax:2,owner:false,notes:''};
+  const opts=activeVillas().map(v=>`<option value="${v.id}" ${v.id===g.villaId?'selected':''}>${esc(v.name)}</option>`).join('');
+  openModal(`<h3>${id?'Edit':'Add'} booking</h3>
+    <div class="fg" style="margin-bottom:12px"><label>Villa</label><select id="b_villa">${opts}</select></div>
+    <div class="form-grid" style="margin-bottom:12px"><div class="fg"><label>Arrive date</label><input type="date" id="b_arr" value="${ymd(g.arrive)}"></div><div class="fg"><label>Arrive time</label><input type="time" id="b_atime" value="${esc(g.aTime)}"></div></div>
+    <div class="form-grid" style="margin-bottom:12px"><div class="fg"><label>Depart date</label><input type="date" id="b_dep" value="${ymd(g.depart)}"></div><div class="fg"><label>Depart time</label><input type="time" id="b_dtime" value="${esc(g.dTime)}"></div></div>
+    <div class="form-grid" style="margin-bottom:12px"><div class="fg"><label>Guests (pax)</label><input type="number" id="b_pax" min="0" value="${g.pax}"></div><div class="fg"><label>Notes</label><input id="b_notes" value="${esc(g.notes)}" placeholder="baby cot, heated…"></div></div>
+    <div class="checks">${chk('b_owner','Owner arriving (***)',g.owner)}</div>
+    <div class="modal-actions"><button class="btn green" onclick="saveBooking(${id||0})">Save</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);
+}
+function saveBooking(id){const get=x=>document.getElementById(x);
+  const data={villaId:+get('b_villa').value,arrive:fromYmd(get('b_arr').value),aTime:get('b_atime').value,depart:fromYmd(get('b_dep').value),dTime:get('b_dtime').value,pax:+get('b_pax').value||0,owner:get('b_owner').checked,notes:get('b_notes').value};
+  if(id)Object.assign(state.guests.find(g=>g.id===id),data);else state.guests.push({id:Date.now(),...data});
+  save();closeModal();toast('Booking saved ✓');render();}
+function delBooking(id){openConfirm('Remove this booking?',()=>{state.guests=state.guests.filter(g=>g.id!==id);save();toast('Booking removed');render();});}
+
+/* ---------- REPORT ---------- */
+function workChips(r){const c=[];if(r.cleaned==='Done')c.push('Pool');if(r.jwash)c.push('J-wash');if(r.garden&&r.garden.length)c.push('Garden');
+  if(r.cover)c.push('Cover');if(r.heating)c.push('Heat-on');if(r.furn)c.push('Furniture');if(r.arrivalCheck)c.push('Check');if(r.moveFridge)c.push('Fridge');
+  if(r.troubleshoot)c.push('Fix');if(r.fuel)c.push('Fuel');if(r.shock)c.push('Shock');if(r.issues)c.push('⚑');return c;}
+function viewReport(){
+  let html=`<div class="page-head"><div class="eyebrow">Records</div><h1>Report</h1><p>What your team actually did — for the office Mac &amp; the Saturday folder.</p></div>`;
+  html+=`<div class="seg no-print"><button class="${state.reportTab==='week'?'on':''}" onclick="setReport('week')">This week's grid</button><button class="${state.reportTab==='today'?'on':''}" onclick="setReport('today')">Today's summary</button></div>`;
+  return html+(state.reportTab==='today'?reportToday():reportWeek());
+}
+function setReport(t){state.reportTab=t;render();}
+function reportWeek(){
+  const ws=addDays(startOfWeek(TODAY),state.weekOffset*7),days=[...Array(7)].map((_,i)=>addDays(ws,i)),we=days[6];
+  const rows=activeVillas().filter(v=>state.records.some(r=>r.villaId===v.id&&r.date>=ws&&r.date<=we));
+  const arr=state.guests.filter(g=>g.arrive>=ws&&g.arrive<=we),dep=state.guests.filter(g=>g.depart>=ws&&g.depart<=we);
+  let html=`<div class="week-nav no-print"><button class="arrow" onclick="weekStep(-1)">‹</button><button class="arrow" onclick="weekStep(1)">›</button>
+    <button class="today-btn" onclick="weekStep(0,true)">This week</button><span class="wk-label">${fmtShort(ws)} – ${fmtShort(we)}</span></div>`;
+  html+=`<div class="report-actions no-print"><button class="btn green tiny" onclick="window.print()">🖨 Print / PDF</button><button class="btn subtle tiny" onclick="copyWeek()">⧉ Copy for Excel</button><button class="btn subtle tiny" onclick="downloadCSV()">⬇ CSV file</button></div>`;
+  html+=`<div class="print-head"><h2>PropManager — Work done</h2><p>Week ${fmtShort(ws)} – ${fmtShort(we)} · printed ${TODAY.toLocaleDateString('en-GB')}</p></div>`;
+  html+=`<div class="cal-wrap"><table class="cal"><thead><tr><th class="villa-col">Villa</th>${days.map(d=>`<th class="${sameDay(d,TODAY)?'today':''}">${d.toLocaleDateString('en-GB',{weekday:'short'})}<br>${d.getDate()}</th>`).join('')}</tr></thead><tbody>`;
+  if(!rows.length)html+=`<tr><td class="villa-name">—</td><td colspan="7" class="empty">No work logged this week yet</td></tr>`;
+  else html+=rows.map(v=>{let row=`<tr><td class="villa-name">${esc(v.name)}</td>`;days.forEach(d=>{const rs=recsOn(v.id,d);let cell='';rs.forEach(r=>{const c=workChips(r);if(c.length)cell+=`<span class="cal-tag work">${c.join(' · ')}</span>`;});row+=`<td class="${sameDay(d,TODAY)?'today':''}">${cell}</td>`;});return row+`</tr>`;}).join('');
+  html+=`</tbody></table></div><div class="legend"><span>Each cell = what was done that day. ⚑ = issue logged.</span></div>`;
+  if(arr.length||dep.length){html+=`<div class="card" style="margin-top:18px"><div class="card-head"><span class="ic">⇄</span><h3>Arrivals &amp; departures this week</h3></div>`;
+    html+=arr.map(g=>{const v=villa(g.villaId);return `<div class="row-item"><span class="dot ${g.owner?'plum':'blue'}"></span><div><div class="ri-main">${v?esc(v.name):'—'}</div><div class="ri-sub">${g.owner?'owner':g.pax+' guests'} · ${fmtShort(g.arrive)}${g.aTime?' '+esc(g.aTime):''}</div></div><div class="ri-right"><span class="pill ${g.owner?'plum':'blue'}">ARR</span></div></div>`;}).join('');
+    html+=dep.map(g=>{const v=villa(g.villaId);return `<div class="row-item"><span class="dot red"></span><div><div class="ri-main">${v?esc(v.name):'—'}</div><div class="ri-sub">checkout · ${fmtShort(g.depart)}${g.dTime?' '+esc(g.dTime):''}</div></div><div class="ri-right"><span class="pill red">DEP</span></div></div>`;}).join('');
+    html+=`</div>`;}
+  return html;
+}
+function reportToday(){
+  const rs=state.records.filter(r=>sameDay(r.date,TODAY)).sort((a,b)=>a.villaId-b.villaId);
+  let block=`WORK LOG — ${TODAY.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n`+'='.repeat(34)+'\n';
+  if(!rs.length)block+='\nNothing logged today yet.';
+  else rs.forEach(r=>{const v=villa(r.villaId);block+=`\n🏡 ${v?v.name:'—'}${r.duration?'  ('+r.duration+')':''}\n`;
+    block+=`Pool: ${r.cleaned==='Done'?'cleaned':'—'}${r.topup?', topped up':''}${r.filter==='Done'?', filter':''}${r.jwash?', jwash':''}${r.cover?', cover':''}${r.heating?', heating on':''}  | Cl ${r.chlorine} pH ${r.ph} ${r.temp}°\n`;
+    const ch=[];if(r.tablets)ch.push(r.tablets+' tablets');if(r.phMinus)ch.push('pH- '+r.phMinus+'c');if(r.phPlus)ch.push('pH+ '+r.phPlus+'c');if(r.shock)ch.push('SHOCK');
+    if(ch.length)block+=`Chemicals: ${ch.join(', ')}\n`;
+    if(r.garden&&r.garden.length)block+=`Garden: ${r.garden.join(', ')}${r.gardenNote?' ('+r.gardenNote+')':''}\n`;
+    const ex=[];if(r.furn)ex.push('furniture out');if(r.arrivalCheck)ex.push('arrival check');if(r.moveFridge)ex.push('move fridge');if(r.troubleshoot)ex.push('troubleshooting');if(r.fuel)ex.push('2-stroke fuel');
+    if(ex.length)block+=`Other: ${ex.join(', ')}\n`;
+    if(r.poolNote)block+=`Pool note: ${r.poolNote}\n`;if(r.notes)block+=`Notes: ${r.notes}\n`;if(r.issues)block+=`⚑ Issue: ${r.issues}\n`;
+    block+='-'.repeat(28)+'\n';});
+  return `<div class="report-actions no-print"><button class="btn green tiny" onclick="copyToday()">⧉ Copy text</button><button class="btn subtle tiny" onclick="window.print()">🖨 Print / PDF</button></div>
+    <div class="print-head"><h2>PropManager — Today</h2></div><div class="card"><div class="today-block" id="todayBlock">${esc(block)}</div></div>`;
+}
+function weekData(){const ws=addDays(startOfWeek(TODAY),state.weekOffset*7),days=[...Array(7)].map((_,i)=>addDays(ws,i)),we=days[6];
+  const rows=activeVillas().filter(v=>state.records.some(r=>r.villaId===v.id&&r.date>=ws&&r.date<=we));
+  const head=['Villa',...days.map(d=>d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric'}))];
+  const body=rows.map(v=>[v.name,...days.map(d=>recsOn(v.id,d).map(r=>workChips(r).join(' ')).join(' / '))]);return{head,body};}
+function copyWeek(){const{head,body}=weekData();copyText([head.join('\t'),...body.map(r=>r.join('\t'))].join('\n'),'Copied — paste into Excel ✓');}
+function downloadCSV(){const{head,body}=weekData();const csv=[head,...body].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PropManager-week.csv';document.body.appendChild(a);a.click();a.remove();toast('CSV downloaded ✓');}
+function copyToday(){copyText(document.getElementById('todayBlock').textContent,'Copied ✓ — paste into Excel');}
+function copyText(t,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast(msg)).catch(()=>fallbackCopy(t,msg));}else fallbackCopy(t,msg);}
+function fallbackCopy(t,msg){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast(msg);}catch(e){toast('Could not copy');}ta.remove();}
+
+/* ---------- SETTINGS ---------- */
+function viewSettings(){
+  let html=`<div class="page-head"><div class="eyebrow">Manage</div><h1>Settings</h1><p>Villas, staff, season, and demo controls.</p></div>`;
+  html+=`<div class="seg"><button class="${state.settingsTab==='villas'?'on':''}" onclick="setTab('villas')">Villas</button><button class="${state.settingsTab==='staff'?'on':''}" onclick="setTab('staff')">Staff</button><button class="${state.settingsTab==='season'?'on':''}" onclick="setTab('season')">Season</button></div>`;
+  if(state.settingsTab==='villas'){
+    const active=state.villas.filter(v=>!v.archived),arch=state.villas.filter(v=>v.archived);
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="font-size:18px">${active.length} villas</h3><button class="btn green tiny" onclick="editVilla()">+ Add villa</button></div>`;
+    html+=active.map(v=>villaRow(v,false)).join('');
+    if(arch.length)html+=`<div style="margin-top:18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Archived (history kept)</div>`+arch.map(v=>villaRow(v,true)).join('');
+  }else if(state.settingsTab==='staff'){
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="font-size:18px">${state.staff.length} team members</h3><button class="btn green tiny" onclick="editStaff()">+ Add staff</button></div>`;
+    html+=state.staff.map((s,i)=>`<div class="list-row"><div class="avatar" style="background:${avColor(s.name)}">${esc(initials(s.name))}</div><div><div class="nm">${esc(s.name)}</div><div class="meta"><span class="tag role">${esc(s.role)}</span></div></div><div class="actions"><button class="btn tiny danger" onclick="delStaff(${i})">✕</button></div></div>`).join('');
+  }else{
+    html+=`<div class="card" style="max-width:560px;margin-bottom:18px"><div class="card-head"><span class="ic">☀</span><h3>Pool cleaning season</h3></div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:18px">How often pools should be cleaned before the dashboard flags them.</p>
+      <div class="checks"><label class="chk ${state.season==='summer'?'on':''}" onclick="setSeason('summer')">☀ Summer — every 3 days</label><label class="chk ${state.season==='winter'?'on':''}" onclick="setSeason('winter')">❄ Winter — every 7 days</label></div>
+      <div style="margin-top:18px;padding:13px 15px;background:var(--olive-soft);border-radius:11px;font-size:13.5px;color:var(--olive-dark)">Currently <b>${state.season}</b> — flagged after <b>${threshold()} days</b>.</div></div>`;
+    html+=`<div class="card" style="max-width:560px"><div class="card-head"><span class="ic">↺</span><h3>Demo data</h3></div><p style="color:var(--muted);font-size:14px;margin-bottom:16px">Reset everything back to the sample villas and records.</p><button class="btn danger tiny" onclick="resetDemo()">Reset demo data</button></div>`;
+  }
+  return html;
+}
+function villaRow(v,arch){return `<div class="list-row ${arch?'arch':''}"><div class="avatar tap" style="background:${avColor(v.name)};border-radius:11px" onclick="openProfile(${v.id})">${esc(initials(v.name))}</div>
+  <div><div class="nm link" onclick="openProfile(${v.id})">${esc(v.name)}</div><div class="meta">${v.pool?'<span class="tag">Pool</span>':'<span class="tag">No pool</span>'}${v.heated?'<span class="tag heat">Heated **</span>':''}${v.garden?'<span class="tag">Garden</span>':''}${v.cot?'<span class="tag cot">Baby cot *</span>':''}</div></div>
+  <div class="actions">${arch?`<button class="btn tiny subtle" onclick="restoreVilla(${v.id})">Restore</button>`:`<button class="btn tiny subtle" onclick="editVilla(${v.id})">Edit</button><button class="btn tiny danger" onclick="archiveVilla(${v.id})">Archive</button>`}</div></div>`;}
+function setTab(t){state.settingsTab=t;render();}
+function setSeason(s){state.season=s;save();toast('Season set to '+s);render();}
+function resetDemo(){openConfirm('Reset to demo data? Your changes will be cleared.',()=>{try{localStorage.removeItem('propmanager_v3');}catch(e){}seedDemo();save();state.poolVilla=null;state.weekOffset=0;toast('Demo data restored');render();});}
+function editVilla(id){const v=id?villa(id):{name:'',pool:true,heated:false,garden:true,cot:false};
+  openModal(`<h3>${id?'Edit':'Add'} villa</h3><div class="fg" style="margin-bottom:14px"><label>Villa name</label><input id="m_name" value="${esc(v.name)}" placeholder="e.g. Villa Sunrise"></div>
+    <div class="checks">${chk('m_pool','Has pool',v.pool)}${chk('m_heated','Heated **',v.heated)}${chk('m_garden','Has garden',v.garden)}${chk('m_cot','Baby cot *',v.cot)}</div>
+    <div class="modal-actions"><button class="btn green" onclick="saveVilla(${id||0})">Save</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);}
+function saveVilla(id){const name=document.getElementById('m_name').value.trim();if(!name){toast('Please enter a name');return;}
+  const data={pool:document.getElementById('m_pool').checked,heated:document.getElementById('m_heated').checked,garden:document.getElementById('m_garden').checked,cot:document.getElementById('m_cot').checked};
+  if(id)Object.assign(villa(id),{name,...data});else state.villas.push({id:Math.max(0,...state.villas.map(v=>v.id))+1,name,archived:false,...data});
+  save();closeModal();toast('Villa saved ✓');render();}
+function archiveVilla(id){const v=villa(id);openConfirm(`Archive ${esc(v.name)}? Its history stays, but it's hidden from lists.`,()=>{v.archived=true;save();toast('Villa archived (history kept)');render();});}
+function restoreVilla(id){villa(id).archived=false;save();toast('Villa restored');render();}
+function editStaff(){openModal(`<h3>Add staff member</h3><div class="fg" style="margin-bottom:14px"><label>Name</label><input id="m_sname" placeholder="e.g. Eleni"></div>
+    <div class="fg"><label>Role</label><select id="m_srole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+    <div class="modal-actions"><button class="btn green" onclick="saveStaff()">Add</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);}
+function saveStaff(){const name=document.getElementById('m_sname').value.trim();if(!name){toast('Please enter a name');return;}state.staff.push({name,role:document.getElementById('m_srole').value});save();closeModal();toast('Staff added ✓');populateLogin();render();}
+function delStaff(i){const s=state.staff[i];openConfirm(`Remove ${esc(s.name)}?`,()=>{state.staff.splice(i,1);save();toast('Removed');populateLogin();render();});}
+
+function emptyState(msg){return `<div class="page-head"><h1>—</h1></div><div class="card"><div class="empty">${esc(msg)}</div></div>`;}
+
+/* ---------- MODAL / TOAST ---------- */
+function openModal(html){document.getElementById('modalBox').innerHTML=html;document.getElementById('modalBg').classList.add('show');}
+function closeModal(){document.getElementById('modalBg').classList.remove('show');}
+function openConfirm(msg,onYes){openModal(`<h3>${msg}</h3><div class="modal-actions"><button class="btn danger" id="confYes">Yes</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);document.getElementById('confYes').onclick=()=>{closeModal();onYes();};}
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal();});
+let toastT;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ---------- AUTH ---------- */
+function populateLogin(){document.getElementById('loginName').innerHTML=state.staff.map(s=>`<option value="${esc(s.name)}">${esc(s.name)} — ${s.role}</option>`).join('');}
+function login(){const name=document.getElementById('loginName').value;const u=state.staff.find(s=>s.name===name)||{name,role:'staff'};state.user=u;
+  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+  document.getElementById('sideName').textContent=u.name;document.getElementById('sideRole').textContent=u.role;
+  const av=initials(u.name),col=avColor(u.name);['sideAvatar','tbAvatar'].forEach(id=>{const e=document.getElementById(id);e.textContent=av;e.style.background=col;});
+  state.view='dashboard';state.history=[];render();}
+function logout(){state.user=null;document.getElementById('app').style.display='none';document.getElementById('login').style.display='flex';}
+document.getElementById('loginBtn').addEventListener('click',login);
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+
+/* ---------- INIT ---------- */
+if(!load())seedDemo();
+populateLogin();
+</script>
+</body>
+</html>
