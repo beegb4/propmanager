@@ -108,6 +108,15 @@
   .stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;width:fit-content;background:var(--beige)}
   .stepper button{width:40px;height:42px;font-size:20px;color:var(--olive);font-weight:600;transition:.12s} .stepper button:hover{background:var(--olive-soft)}
   .stepper .num{min-width:48px;text-align:center;font-weight:700;font-size:16px}
+  .tri{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .tri .tlab{font-size:14px;font-weight:600;min-width:96px}
+  .tri .seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--beige)}
+  .tri .seg button{padding:9px 15px;font-size:13.5px;font-weight:600;color:var(--muted);transition:.12s;border-right:1.5px solid var(--line)}
+  .tri .seg button:last-child{border-right:none}
+  .tri .seg button.on-on{background:var(--olive);color:#fff} .tri .seg button.on-off{background:var(--amber);color:#fff} .tri .seg button.on-none{background:var(--beige-light);color:var(--charcoal)}
+  .mode-seg{display:flex;gap:0;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:6px;width:fit-content}
+  .mode-seg button{padding:10px 18px;font-weight:600;font-size:14px;color:var(--muted);transition:.12s;border-right:1.5px solid var(--line)}
+  .mode-seg button:last-child{border-right:none} .mode-seg button.active{background:var(--olive);color:#fff}
   .form-actions{display:flex;gap:12px;margin-top:8px}
   .btn{padding:12px 22px;border-radius:11px;font-weight:600;font-size:15px;transition:.16s}
   .btn.green{background:var(--olive);color:#fff;box-shadow:0 4px 12px rgba(86,98,57,.22)} .btn.green:hover{background:var(--olive-dark);transform:translateY(-1px)}
@@ -188,18 +197,24 @@
     .card{box-shadow:none;border:1px solid #ccc} .cal-wrap{box-shadow:none;overflow:visible}
     .print-head{display:block;margin-bottom:14px} .print-head h2{font-size:20px} .print-head p{color:#555;font-size:13px}
   }
+  .errbar{display:none;position:fixed;top:0;left:0;right:0;z-index:300;background:#b3261e;color:#fff;padding:11px 16px;font-size:13px;line-height:1.45;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  .errbar.show{display:block} .errbar b{display:block;margin-bottom:2px} .errbar .x{float:right;cursor:pointer;font-weight:700;padding:0 6px}
+  .login-msg{margin-top:12px;font-size:13px;color:#b3261e;text-align:center;min-height:18px}
+  .login-msg.ok{color:var(--olive-dark)}
 </style>
 </head>
 <body>
+<div id="errbar" class="errbar"></div>
 
 <div id="login">
   <div class="login-card">
     <div class="brand"><div class="brand-mark">P</div><div class="brand-name">Prop<span>Manager</span></div></div>
     <p class="login-sub">Villa &amp; pool maintenance, all in one place.</p>
-    <div class="field"><label for="loginName">Who's logging in?</label><select id="loginName"></select></div>
-    <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass" value="demo"></div>
+    <div class="field"><label for="loginName">Your name</label><input id="loginName" placeholder="e.g. Bee" autocomplete="username"></div>
+    <div class="field"><label for="loginPass">Password</label><input type="password" id="loginPass" placeholder="your password" autocomplete="current-password"></div>
     <button class="btn-primary" id="loginBtn">Sign in</button>
-    <div class="demo-hint">🧪 <b>Demo mode</b> — pick any name, password is pre-filled. Your changes save in this browser until we connect Firebase.</div>
+    <div id="loginMsg" class="login-msg"></div>
+    <div class="demo-hint">☁️ Live cloud · your team shares one dataset. No account? Ask your admin to add you.</div>
   </div>
 </div>
 
@@ -229,8 +244,29 @@
 <div id="toast"></div>
 <div class="modal-bg" id="modalBg"><div class="modal" id="modalBox"></div></div>
 
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore-compat.js"></script>
 <script>
-/* ===== PropManager v3 — saves to this browser (localStorage). No backend yet. ===== */
+/* ===== PropManager v4 — live cloud (Firebase Auth + Firestore). ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBuVqaQ7XcZYqfNrDePUFeyU8lNl8nt68",
+  authDomain: "propmanager-696a0.firebaseapp.com",
+  projectId: "propmanager-696a0",
+  storageBucket: "propmanager-696a0.firebasestorage.app",
+  messagingSenderId: "173223832417",
+  appId: "1:173223832417:web:d9540a6ee587f2a10f7320"
+};
+let DB=null, AUTH=null, ME=null, _loginName='';
+const MAX_RECORDS=1000, MAX_OTHER=400, MAX_RESOLVED=400; /* auto-prune caps — keeps the database tiny, far under the free tier */
+function showErr(e){const b=document.getElementById('errbar');if(!b)return;const msg=(e&&e.message)?e.message:String(e);
+  b.innerHTML='<span class="x" onclick="this.parentNode.classList.remove(\'show\')">✕</span><b>Something went wrong (you can screenshot this)</b>'+esc(msg);b.classList.add('show');console.error(e);}
+try{ firebase.initializeApp(firebaseConfig); DB=firebase.firestore(); AUTH=firebase.auth();
+  AUTH.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{}); }
+catch(e){ /* shown after DOM ready */ window._fbInitErr=e; }
+</script>
+<script>
+/* ===== PropManager app ===== */
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const DAY=86400000;
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);x.setHours(0,0,0,0);return x;}
@@ -244,12 +280,12 @@ const AV=['#6B7C4A','#3D6E8F','#C98A2B','#7E5A86','#C0392B','#4A8C7A'];
 function avColor(n){let s=0;for(const c of n)s+=c.charCodeAt(0);return AV[s%AV.length];}
 function initials(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 
-const state={user:null,view:'dashboard',history:[],season:'summer',weekOffset:0,poolVilla:null,profileVilla:null,editingRecord:null,settingsTab:'villas',reportTab:'week'};
-Object.assign(state,{staff:[],villas:[],records:[],guests:[],pending:[],resolved:[]});
+const state={user:null,view:'dashboard',history:[],season:'summer',weekOffset:0,poolVilla:null,profileVilla:null,editingRecord:null,settingsTab:'villas',reportTab:'week',logMode:'villa'};
+Object.assign(state,{staff:[],villas:[],records:[],guests:[],pending:[],resolved:[],otherWork:[]});
 
 /* TASK definitions used in log + chips */
-const GARDEN=['Weeding','Lawn mowed','Strimmer','Spray weeds'];
-const EXTRAS=[['jwash','Jet wash (jwash)'],['cover','Pool cover'],['heating','Pool heating on'],['furn','Furniture out'],['arrivalCheck','Arrival check'],['moveFridge','Move fridge'],['troubleshoot','Troubleshooting'],['fuel','2-stroke fuel']];
+const GARDEN=['Weeding','Lawn mowed','Strimmer','Spray weeds','Water pots'];
+const EXTRAS=[['furn','Furniture out'],['arrivalCheck','Arrival check'],['troubleshoot','Troubleshooting']];
 
 /* ---------- DEMO SEED ---------- */
 function seedDemo(){
@@ -259,16 +295,16 @@ function seedDemo(){
   const heat={Aquarious:1,'De Lujo':1,Celini:1}, cot={'De Lujo':1,Pelagos:1};
   state.villas=vn.map((n,i)=>({id:i+1,name:n,pool:n!=='Boss',heated:!!heat[n],garden:true,cot:!!cot[n],archived:false}));
   // [villaId,daysAgo,cleaned,filter,topup,cl,ph,temp,tablets,phMinus,phPlus,shock,garden,extras{},notes,issues,duration,by]
-  const E=(o)=>Object.assign({jwash:false,cover:false,heating:false,furn:false,arrivalCheck:false,moveFridge:false,troubleshoot:false,fuel:false},o);
+  const E=(o)=>Object.assign({furn:false,arrivalCheck:false,troubleshoot:false,coverSt:'',heatSt:'',clPowder:0,clGran:0,otherNote:''},o);
   const rs=[
-    [1,1,'Done','Done',true,'1.4','7.2','27',2,0,0,false,['Lawn mowed','Weeding'],E({jwash:true}),'','Pool pump making noise','09:00-11:00','Bee'],
+    [1,1,'Done','Done',true,'1.4','7.2','27',2,0,0,false,['Lawn mowed','Weeding'],E({clPowder:1}),'','Pool pump making noise','09:00-11:00','Bee'],
     [2,5,'Done','—',false,'1.2','7.4','26',0,1,0,false,['Strimmer'],E({}),'','','08:30-09:45','Maria'],
-    [3,4,'Done','Done',false,'1.6','7.1','25',3,0,0,true,['Lawn mowed','Spray weeds'],E({jwash:true}),'','','10:00-11:30','Kostas'],
+    [3,4,'Done','Done',false,'1.6','7.1','25',3,0,0,true,['Lawn mowed','Spray weeds'],E({coverSt:'off'}),'','','10:00-11:30','Kostas'],
     [4,2,'Done','—',true,'1.3','7.3','28',1,0,0,false,['Lawn mowed'],E({}),'','Gate lock broken — needs replacement','12:00-13:00','Bee'],
-    [5,6,'—','—',false,'0.8','7.6','24',0,0,1,false,[],E({heating:true,cover:true}),'','Filter needs replacing soon','','Bas'],
-    [6,3,'Done','Done',false,'1.5','7.2','26',2,0,0,false,['Weeding'],E({jwash:true,furn:true}),'Furniture to terrace','','07:30-10:00','Maria'],
+    [5,6,'—','—',false,'0.8','7.6','24',0,0,1,false,[],E({heatSt:'on',coverSt:'on'}),'','Filter needs replacing soon','','Bas'],
+    [6,3,'Done','Done',false,'1.5','7.2','26',2,0,0,false,['Weeding'],E({furn:true,clGran:1}),'Furniture to terrace','','07:30-10:00','Maria'],
     [7,1,'Done','—',false,'1.4','7.0','27',2,1,0,false,['Lawn mowed'],E({}),'','','09:00-10:00','Bee'],
-    [9,5,'Done','Done',true,'1.1','7.5','25',0,0,0,false,['Strimmer'],E({moveFridge:true}),'','','11:00-12:00','Kostas'],
+    [9,5,'Done','Done',true,'1.1','7.5','25',0,0,0,false,['Strimmer'],E({arrivalCheck:true}),'','','11:00-12:00','Kostas'],
     [11,2,'Done','—',false,'1.7','7.1','29',1,0,0,false,['Weeding'],E({}),'','','08:00-09:00','Bas'],
     [13,8,'—','—',false,'0.6','7.8','23',0,0,2,false,[],E({troubleshoot:true}),'Checked lights & remotes','','','Maria'],
     [3,18,'Done','Done',false,'1.5','7.2','24',2,0,0,true,['Lawn mowed'],E({}),'','','','Bee'],
@@ -281,26 +317,51 @@ function seedDemo(){
   let gid=1;state.guests=gs.map(g=>({id:gid++,villaId:g[0],arrive:addDays(TODAY,g[1]),aTime:g[2],depart:addDays(TODAY,g[3]),dTime:g[4],pax:g[5],owner:g[6],notes:g[7]}));
   state.pending=[];state.resolved=[];
   state.records.forEach(r=>{if(r.issues&&r.issues.trim())state.pending.push({id:'p'+r.id,villaId:r.villaId,text:r.issues.trim(),date:r.date,by:r.by});});
+  state.otherWork=[
+    {id:'ow1',date:addDays(TODAY,-1),by:'Bee',text:'Picked up chlorine + pH minus from the shop in town',duration:'08:00-08:40'},
+    {id:'ow2',date:addDays(TODAY,-3),by:'Kostas',text:'Took the strimmer for repair, bought 2-stroke fuel',duration:'14:00-15:30'}
+  ];
 }
 
 /* ---------- PERSISTENCE ---------- */
-function save(){try{localStorage.setItem('propmanager_v3',JSON.stringify({
-  season:state.season,villas:state.villas,staff:state.staff,
-  records:state.records.map(r=>({...r,date:ymd(r.date)})),
-  guests:state.guests.map(g=>({...g,arrive:ymd(g.arrive),depart:ymd(g.depart)})),
-  pending:state.pending.map(p=>({...p,date:p.date?ymd(p.date):null})),
-  resolved:state.resolved.map(r=>({...r,date:r.date?ymd(r.date):null,resolvedDate:r.resolvedDate?ymd(r.resolvedDate):null})),
-}));}catch(e){}}
-function load(){try{
-  const raw=localStorage.getItem('propmanager_v3');if(!raw)return false;
-  const d=JSON.parse(raw);
-  state.season=d.season||'summer';state.villas=d.villas||[];state.staff=d.staff||[];
-  state.records=(d.records||[]).map(r=>({...r,date:fromYmd(r.date)}));
-  state.guests=(d.guests||[]).map(g=>({...g,arrive:fromYmd(g.arrive),depart:fromYmd(g.depart)}));
-  state.pending=(d.pending||[]).map(p=>({...p,date:p.date?fromYmd(p.date):null}));
-  state.resolved=(d.resolved||[]).map(r=>({...r,date:r.date?fromYmd(r.date):null,resolvedDate:r.resolvedDate?fromYmd(r.resolvedDate):null}));
-  return state.villas.length>0;
-}catch(e){return false;}}
+/* ---------- CLOUD PERSISTENCE (Firestore) ---------- */
+const COLLS=['villas','records','guests','pending','resolved','otherWork'];
+function ser(c,o){const x={...o};
+  if(c==='records')return {...x,date:ymd(o.date)};
+  if(c==='guests')return {...x,arrive:ymd(o.arrive),depart:ymd(o.depart)};
+  if(c==='pending')return {...x,date:o.date?ymd(o.date):null};
+  if(c==='resolved')return {...x,date:o.date?ymd(o.date):null,resolvedDate:o.resolvedDate?ymd(o.resolvedDate):null};
+  if(c==='otherWork')return {...x,date:o.date?ymd(o.date):null};
+  return x;}
+function deser(c,d){
+  if(c==='records')return {...d,date:fromYmd(d.date)};
+  if(c==='guests')return {...d,arrive:fromYmd(d.arrive),depart:fromYmd(d.depart)};
+  if(c==='pending')return {...d,date:d.date?fromYmd(d.date):null};
+  if(c==='resolved')return {...d,date:d.date?fromYmd(d.date):null,resolvedDate:d.resolvedDate?fromYmd(d.resolvedDate):null};
+  if(c==='otherWork')return {...d,date:d.date?fromYmd(d.date):null};
+  return d;}
+function dbPut(c,o){return DB.collection(c).doc(String(o.id)).set(ser(c,o)).catch(showErr);}
+function dbDel(c,id){return DB.collection(c).doc(String(id)).delete().catch(showErr);}
+function dbSeason(s){return DB.collection('settings').doc('app').set({season:s}).catch(showErr);}
+/* legacy no-op: old code calls save(); cloud writes happen at each action instead */
+function save(){}
+/* keep newest N, delete the oldest beyond the cap so the database never grows without bound */
+function pruneCollection(c,max){const arr=[...(state[c]||[])];if(arr.length<=max)return;
+  const keyDate=x=>(c==='records'||c==='otherWork'||c==='resolved')?(x.date?+new Date(x.date):0):0;
+  arr.sort((a,b)=>keyDate(b)-keyDate(a)); /* newest first */
+  arr.slice(max).forEach(o=>dbDel(c,o.id));}
+function pruneAll(){pruneCollection('records',MAX_RECORDS);pruneCollection('otherWork',MAX_OTHER);pruneCollection('resolved',MAX_RESOLVED);}
+/* realtime listeners — server is the source of truth, all devices stay in sync */
+let _unsub=[];
+function stopListeners(){_unsub.forEach(u=>{try{u();}catch(e){}});_unsub=[];}
+function startListeners(){stopListeners();
+  COLLS.forEach(c=>{const u=DB.collection(c).onSnapshot(snap=>{state[c]=snap.docs.map(d=>deser(c,d.data()));safeRender();},showErr);_unsub.push(u);});
+  _unsub.push(DB.collection('staff').onSnapshot(snap=>{state.staff=snap.docs.map(d=>({uid:d.id,...d.data()}));safeRender();},showErr));
+  _unsub.push(DB.collection('settings').doc('app').onSnapshot(d=>{if(d.exists)state.season=(d.data().season||'summer');safeRender();},showErr));
+}
+/* don't auto-redraw while a form/modal is open, or the user's typing would be wiped */
+function modalOpen(){const m=document.getElementById('modalBg');return m&&m.classList.contains('show');}
+function safeRender(){if(!state.user)return;if(state.view==='log'||state.view==='guestEdit')return;if(modalOpen())return;render();}
 
 /* ---------- COMPUTED ---------- */
 function villa(id){return state.villas.find(v=>v.id===id);}
@@ -386,35 +447,57 @@ function viewDashboard(){
   html+=`</div>`;return html;
 }
 function resolvePending(id){const p=state.pending.find(x=>x.id===id);if(!p)return;
-  state.resolved.push({villaId:p.villaId,text:p.text,date:p.date,resolvedBy:state.user.name,resolvedDate:new Date(TODAY)});
-  state.pending=state.pending.filter(x=>x.id!==id);save();toast('Issue marked done ✓ (kept in history)');render();}
+  dbPut('resolved',{id:'rs'+Date.now(),villaId:p.villaId,text:p.text,date:p.date,resolvedBy:state.user.name,resolvedDate:new Date(TODAY)});
+  dbDel('pending',id);toast('Issue marked done ✓ (kept in history)');}
 
 /* ---------- DAILY LOG (create + edit) ---------- */
 function chk(id,label,on){return `<label class="chk ${on?'on':''}" onclick="this.classList.toggle('on')"><input type="checkbox" id="${id}" ${on?'checked':''} onclick="event.stopPropagation();this.closest('.chk').classList.toggle('on',this.checked)"> ${label}</label>`;}
 function stepper(id,val){val=val||0;return `<div class="stepper"><button type="button" onclick="step('${id}',-1)">−</button><span class="num" id="${id}_n">${val}</span><button type="button" onclick="step('${id}',1)">+</button><input type="hidden" id="${id}" value="${val}"></div>`;}
 function step(id,d){const inp=document.getElementById(id);let v=Math.max(0,(+inp.value||0)+d);inp.value=v;document.getElementById(id+'_n').textContent=v;}
+function fmtHalf(v){v=+v||0;return Number.isInteger(v)?String(v):v.toFixed(1);}
+function stepperH(id,val){val=+val||0;return `<div class="stepper"><button type="button" onclick="stepH('${id}',-0.5)">−</button><span class="num" id="${id}_n">${fmtHalf(val)}</span><button type="button" onclick="stepH('${id}',0.5)">+</button><input type="hidden" id="${id}" value="${val}"></div>`;}
+function stepH(id,d){const inp=document.getElementById(id);let v=Math.max(0,Math.round(((+inp.value||0)+d)*2)/2);inp.value=v;document.getElementById(id+'_n').textContent=fmtHalf(v);}
+function tri(id,label,val){val=val||'';const b=(v,t,cls)=>`<button type="button" id="${id}_${v||'none'}" class="${val===v?'on-'+cls:''}" onclick="setTri('${id}','${v}')">${t}</button>`;
+  return `<div class="tri"><span class="tlab">${label}</span><div class="seg">${b('on','On','on')}${b('off','Off','off')}${b('','— none','none')}</div><input type="hidden" id="${id}" value="${val}"></div>`;}
+function setTri(id,v){document.getElementById(id).value=v;['on','off',''].forEach(x=>{const btn=document.getElementById(id+'_'+(x||'none'));if(btn)btn.className=(x===v?'on-'+(x==='on'?'on':x==='off'?'off':'none'):'');});}
 function tv(v){return v&&v!=='—'?esc(v):'';}
+function setLogMode(m){state.logMode=m;render();}
 function viewLog(){
   const r=state.editingRecord?state.records.find(x=>x.id===state.editingRecord):null;
-  const d=r||{};const opts=activeVillas().map(v=>`<option value="${v.id}" ${v.id===d.villaId?'selected':''}>${esc(v.name)}</option>`).join('');
-  return `<div class="page-head"><div class="eyebrow">${r?'Edit entry · '+fmtShort(d.date):'New entry'}</div><h1>${r?'Edit Log':'Daily Log'}</h1>
-    <p>Record what you did. Anything in <b>Issues</b> is tracked for that villa until resolved.</p></div>
-  <div class="card" style="max-width:780px">
+  const d=r||{};const mode=r?'villa':state.logMode;
+  const opts=activeVillas().map(v=>`<option value="${v.id}" ${v.id===d.villaId?'selected':''}>${esc(v.name)}</option>`).join('');
+  const head=`<div class="page-head"><div class="eyebrow">${r?'Edit entry · '+fmtShort(d.date):'New entry'}</div><h1>${r?'Edit Log':'Daily Log'}</h1>
+    <p>Record what you did. Anything in <b>Issues</b> is tracked for that villa until resolved.</p></div>`;
+  const toggle=r?'':`<div class="mode-seg"><button class="${mode==='villa'?'active':''}" onclick="setLogMode('villa')">🏡 Villa work</button><button class="${mode==='other'?'active':''}" onclick="setLogMode('other')">🧾 Other work (no villa)</button></div>`;
+  if(mode==='other'){
+    return head+toggle+`<div class="card" style="max-width:780px">
+      <div class="form-section"><div class="sec-title">🧾 Other work (not at a villa)</div>
+        <p style="color:var(--muted);font-size:13px;margin:-4px 0 12px">For anything outside the villa round — shop runs, repairs, errands, a Sunday job. It goes into your day's report but isn't tied to a villa.</p>
+        <div class="fg" style="margin-bottom:14px"><label>What did you do?</label><textarea id="f_owtext" placeholder="e.g. picked up chlorine + pH minus, took strimmer for repair…"></textarea></div>
+        <div class="fg" style="max-width:280px"><label>Time / duration</label><input id="f_owdur" placeholder="e.g. 08:00–08:40"></div></div>
+      <div class="form-actions"><button class="btn green" onclick="saveLog()">Save</button><button class="btn subtle" onclick="back()">Cancel</button></div>
+    </div>`;
+  }
+  return head+toggle+`<div class="card" style="max-width:780px">
     <div class="form-section"><div class="sec-title">🏡 Villa</div><div class="fg"><label>Which villa?</label><select id="f_villa">${opts}</select></div></div>
     <div class="form-section"><div class="sec-title">≈ Pool</div>
-      <div class="checks" style="margin-bottom:14px">${chk('f_cleaned','Pool cleaned',d.cleaned==='Done')}${chk('f_filter','Filter cleaned',d.filter==='Done')}${chk('f_topup','Water topped up',d.topup)}${chk('f_jwash','Jet wash (jwash)',d.jwash)}${chk('f_cover','Pool cover',d.cover)}${chk('f_heating','Pool heating on',d.heating)}</div>
+      <div class="checks" style="margin-bottom:14px">${chk('f_cleaned','Pool cleaned',d.cleaned==='Done')}${chk('f_filter','Filter cleaned',d.filter==='Done')}${chk('f_topup','Water topped up',d.topup)}</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:14px">${tri('f_cover','Pool cover',d.coverSt)}${tri('f_heat','Pool heating',d.heatSt)}</div>
       <div class="form-grid" style="margin-bottom:14px"><div class="fg"><label>Chlorine</label><input id="f_chlorine" value="${tv(d.chlorine)}" placeholder="e.g. 1.5"></div>
         <div class="fg"><label>pH</label><input id="f_ph" value="${tv(d.ph)}" placeholder="e.g. 7.2"></div><div class="fg"><label>Temp °C</label><input id="f_temp" value="${tv(d.temp)}" placeholder="e.g. 26"></div></div>
       <div class="fg"><label>Pool — anything else?</label><textarea id="f_poolnote" placeholder="Rare extra pool things…">${esc(d.poolNote||'')}</textarea></div></div>
     <div class="form-section"><div class="sec-title">✦ Chemicals added</div>
       <div class="form-grid"><div class="fg"><label>Chlorine tablets</label>${stepper('f_tablets',d.tablets)}</div>
+        <div class="fg"><label>Chlorine powder (cups)</label>${stepperH('f_clpowder',d.clPowder)}</div>
+        <div class="fg"><label>Chlorine granulate (cups)</label>${stepperH('f_clgran',d.clGran)}</div>
         <div class="fg"><label>pH minus (cups)</label>${stepper('f_phminus',d.phMinus)}</div><div class="fg"><label>pH plus (cups)</label>${stepper('f_phplus',d.phPlus)}</div></div>
       <div class="checks" style="margin-top:14px">${chk('f_shock','Shock treatment given',d.shock)}</div></div>
     <div class="form-section"><div class="sec-title">🌿 Garden</div>
       <div class="checks" style="margin-bottom:14px">${GARDEN.map((g,i)=>chk('f_g'+i,g,(d.garden||[]).includes(g))).join('')}</div>
       <div class="fg"><label>Garden — anything else?</label><textarea id="f_gardennote" placeholder="Rare extra garden things…">${esc(d.gardenNote||'')}</textarea></div></div>
     <div class="form-section"><div class="sec-title">🧰 Other tasks</div>
-      <div class="checks">${EXTRAS.map(([k,l])=>chk('f_'+k,l,d[k])).join('')}</div></div>
+      <div class="checks" style="margin-bottom:14px">${EXTRAS.map(([k,l])=>chk('f_'+k,l,d[k])).join('')}</div>
+      <div class="fg"><label>Other tasks — anything else?</label><textarea id="f_othernote" placeholder="Rare extra tasks…">${esc(d.otherNote||'')}</textarea></div></div>
     <div class="form-section"><div class="sec-title">📝 Notes &amp; issues</div>
       <div class="fg" style="margin-bottom:14px"><label>Notes (just for today)</label><textarea id="f_notes" placeholder="General comments…">${esc(d.notes||'')}</textarea></div>
       <div class="fg"><label>⚑ Issues (stays on this villa until resolved)</label><textarea id="f_issues" placeholder="Broken gate, pump noise, follow-up…">${esc(d.issues||'')}</textarea></div></div>
@@ -423,19 +506,28 @@ function viewLog(){
   </div>`;
 }
 function saveLog(){
-  const get=x=>document.getElementById(x),id=+get('f_villa').value;
+  const get=x=>document.getElementById(x);
+  if(!state.editingRecord && state.logMode==='other'){
+    const text=get('f_owtext').value.trim();
+    if(!text){toast('Write what you did first');return;}
+    dbPut('otherWork',{id:'ow'+Date.now(),date:new Date(TODAY),by:state.user.name,text,duration:get('f_owdur').value});
+    toast('Other work saved ✓');state.logMode='villa';go('report');pruneAll();return;
+  }
+  const id=+get('f_villa').value;
   const garden=GARDEN.filter((g,i)=>get('f_g'+i).checked);
   const issues=get('f_issues').value.trim();
   const extras={};EXTRAS.forEach(([k])=>extras[k]=get('f_'+k).checked);
   const base={villaId:id,cleaned:get('f_cleaned').checked?'Done':'—',filter:get('f_filter').checked?'Done':'—',topup:get('f_topup').checked,
     chlorine:get('f_chlorine').value||'—',ph:get('f_ph').value||'—',temp:get('f_temp').value||'—',
-    tablets:+get('f_tablets').value||0,phMinus:+get('f_phminus').value||0,phPlus:+get('f_phplus').value||0,shock:get('f_shock').checked,
-    garden,...extras,poolNote:get('f_poolnote').value,gardenNote:get('f_gardennote').value,notes:get('f_notes').value,issues,duration:get('f_duration').value};
-  if(state.editingRecord){const r=state.records.find(x=>x.id===state.editingRecord);Object.assign(r,base);
-    save();toast('Entry updated ✓');state.editingRecord=null;state.poolVilla=id;go('pool');}
-  else{const rec={id:Date.now(),date:new Date(TODAY),by:state.user.name,...base};state.records.unshift(rec);
-    if(issues)state.pending.push({id:'p'+rec.id,villaId:id,text:issues,date:new Date(TODAY),by:state.user.name});
-    save();toast('Saved for '+villa(id).name+(issues?' · issue tracked ⚑':' ✓'));state.poolVilla=id;go('pool');}
+    tablets:+get('f_tablets').value||0,clPowder:+get('f_clpowder').value||0,clGran:+get('f_clgran').value||0,phMinus:+get('f_phminus').value||0,phPlus:+get('f_phplus').value||0,shock:get('f_shock').checked,
+    coverSt:get('f_cover').value,heatSt:get('f_heat').value,
+    garden,...extras,poolNote:get('f_poolnote').value,gardenNote:get('f_gardennote').value,otherNote:get('f_othernote').value,notes:get('f_notes').value,issues,duration:get('f_duration').value};
+  if(state.editingRecord){const r=state.records.find(x=>x.id===state.editingRecord)||{};const rec={...r,id:state.editingRecord,...base};
+    dbPut('records',rec);toast('Entry updated ✓');state.editingRecord=null;state.poolVilla=id;go('pool');}
+  else{const rec={id:Date.now(),date:new Date(TODAY),by:state.user.name,...base};
+    dbPut('records',rec);
+    if(issues)dbPut('pending',{id:'p'+rec.id,villaId:id,text:issues,date:new Date(TODAY),by:state.user.name});
+    toast('Saved for '+(villa(id)?villa(id).name:'villa')+(issues?' · issue tracked ⚑':' ✓'));state.poolVilla=id;go('pool');pruneAll();}
 }
 function editRecord(id){state.editingRecord=id;go('log');}
 
@@ -464,7 +556,7 @@ function viewPool(){
   html+=`</div>`;return html;
 }
 function setPool(id){state.poolVilla=id;render();}
-function delRecord(id){openConfirm('Remove this entry?',()=>{state.records=state.records.filter(r=>r.id!==id);save();toast('Entry removed');render();});}
+function delRecord(id){openConfirm('Remove this entry?',()=>{dbDel('records',id);toast('Entry removed');});}
 
 /* ---------- VILLA PROFILE ---------- */
 function viewProfile(){
@@ -540,14 +632,16 @@ function addBooking(id){
 }
 function saveBooking(id){const get=x=>document.getElementById(x);
   const data={villaId:+get('b_villa').value,arrive:fromYmd(get('b_arr').value),aTime:get('b_atime').value,depart:fromYmd(get('b_dep').value),dTime:get('b_dtime').value,pax:+get('b_pax').value||0,owner:get('b_owner').checked,notes:get('b_notes').value};
-  if(id)Object.assign(state.guests.find(g=>g.id===id),data);else state.guests.push({id:Date.now(),...data});
-  save();closeModal();toast('Booking saved ✓');render();}
-function delBooking(id){openConfirm('Remove this booking?',()=>{state.guests=state.guests.filter(g=>g.id!==id);save();toast('Booking removed');render();});}
+  const g=id?{...state.guests.find(x=>x.id===id),id,...data}:{id:Date.now(),...data};
+  dbPut('guests',g);closeModal();toast('Booking saved ✓');render();}
+function delBooking(id){openConfirm('Remove this booking?',()=>{dbDel('guests',id);toast('Booking removed');});}
 
 /* ---------- REPORT ---------- */
-function workChips(r){const c=[];if(r.cleaned==='Done')c.push('Pool');if(r.jwash)c.push('J-wash');if(r.garden&&r.garden.length)c.push('Garden');
-  if(r.cover)c.push('Cover');if(r.heating)c.push('Heat-on');if(r.furn)c.push('Furniture');if(r.arrivalCheck)c.push('Check');if(r.moveFridge)c.push('Fridge');
-  if(r.troubleshoot)c.push('Fix');if(r.fuel)c.push('Fuel');if(r.shock)c.push('Shock');if(r.issues)c.push('⚑');return c;}
+function workChips(r){const c=[];if(r.cleaned==='Done')c.push('Pool');if(r.garden&&r.garden.length)c.push('Garden');
+  if(r.coverSt==='on')c.push('Cover on');else if(r.coverSt==='off')c.push('Cover off');
+  if(r.heatSt==='on')c.push('Heat on');else if(r.heatSt==='off')c.push('Heat off');
+  if(r.furn)c.push('Furniture');if(r.arrivalCheck)c.push('Check');
+  if(r.troubleshoot)c.push('Fix');if(r.shock)c.push('Shock');if(r.issues)c.push('⚑');return c;}
 function viewReport(){
   let html=`<div class="page-head"><div class="eyebrow">Records</div><h1>Report</h1><p>What your team actually did — for the office Mac &amp; the Saturday folder.</p></div>`;
   html+=`<div class="seg no-print"><button class="${state.reportTab==='week'?'on':''}" onclick="setReport('week')">This week's grid</button><button class="${state.reportTab==='today'?'on':''}" onclick="setReport('today')">Today's summary</button></div>`;
@@ -575,16 +669,19 @@ function reportWeek(){
 function reportToday(){
   const rs=state.records.filter(r=>sameDay(r.date,TODAY)).sort((a,b)=>a.villaId-b.villaId);
   let block=`WORK LOG — ${TODAY.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}\n`+'='.repeat(34)+'\n';
-  if(!rs.length)block+='\nNothing logged today yet.';
+  const ow=(state.otherWork||[]).filter(o=>sameDay(o.date,TODAY));
+  if(!rs.length&&!ow.length)block+='\nNothing logged today yet.';
   else rs.forEach(r=>{const v=villa(r.villaId);block+=`\n🏡 ${v?v.name:'—'}${r.duration?'  ('+r.duration+')':''}\n`;
-    block+=`Pool: ${r.cleaned==='Done'?'cleaned':'—'}${r.topup?', topped up':''}${r.filter==='Done'?', filter':''}${r.jwash?', jwash':''}${r.cover?', cover':''}${r.heating?', heating on':''}  | Cl ${r.chlorine} pH ${r.ph} ${r.temp}°\n`;
-    const ch=[];if(r.tablets)ch.push(r.tablets+' tablets');if(r.phMinus)ch.push('pH- '+r.phMinus+'c');if(r.phPlus)ch.push('pH+ '+r.phPlus+'c');if(r.shock)ch.push('SHOCK');
+    const cv=r.coverSt==='on'?', cover on':r.coverSt==='off'?', cover off':'';const ht=r.heatSt==='on'?', heating on':r.heatSt==='off'?', heating off':'';
+    block+=`Pool: ${r.cleaned==='Done'?'cleaned':'—'}${r.topup?', topped up':''}${r.filter==='Done'?', filter':''}${cv}${ht}  | Cl ${r.chlorine} pH ${r.ph} ${r.temp}°\n`;
+    const ch=[];if(r.tablets)ch.push(r.tablets+' tablets');if(r.clPowder)ch.push('powder '+fmtHalf(r.clPowder)+'c');if(r.clGran)ch.push('granulate '+fmtHalf(r.clGran)+'c');if(r.phMinus)ch.push('pH- '+r.phMinus+'c');if(r.phPlus)ch.push('pH+ '+r.phPlus+'c');if(r.shock)ch.push('SHOCK');
     if(ch.length)block+=`Chemicals: ${ch.join(', ')}\n`;
     if(r.garden&&r.garden.length)block+=`Garden: ${r.garden.join(', ')}${r.gardenNote?' ('+r.gardenNote+')':''}\n`;
-    const ex=[];if(r.furn)ex.push('furniture out');if(r.arrivalCheck)ex.push('arrival check');if(r.moveFridge)ex.push('move fridge');if(r.troubleshoot)ex.push('troubleshooting');if(r.fuel)ex.push('2-stroke fuel');
-    if(ex.length)block+=`Other: ${ex.join(', ')}\n`;
+    const ex=[];if(r.furn)ex.push('furniture out');if(r.arrivalCheck)ex.push('arrival check');if(r.troubleshoot)ex.push('troubleshooting');
+    if(ex.length||r.otherNote)block+=`Other: ${ex.join(', ')}${r.otherNote?(ex.length?', ':'')+r.otherNote:''}\n`;
     if(r.poolNote)block+=`Pool note: ${r.poolNote}\n`;if(r.notes)block+=`Notes: ${r.notes}\n`;if(r.issues)block+=`⚑ Issue: ${r.issues}\n`;
     block+='-'.repeat(28)+'\n';});
+  if(ow.length){block+=`\n🧾 OTHER WORK (not at a villa)\n`;ow.forEach(o=>{block+=`• ${o.text}${o.duration?'  ('+o.duration+')':''} — ${o.by}\n`;});}
   return `<div class="report-actions no-print"><button class="btn green tiny" onclick="copyToday()">⧉ Copy text</button><button class="btn subtle tiny" onclick="window.print()">🖨 Print / PDF</button></div>
     <div class="print-head"><h2>PropManager — Today</h2></div><div class="card"><div class="today-block" id="todayBlock">${esc(block)}</div></div>`;
 }
@@ -601,7 +698,7 @@ function fallbackCopy(t,msg){const ta=document.createElement('textarea');ta.valu
 
 /* ---------- SETTINGS ---------- */
 function viewSettings(){
-  let html=`<div class="page-head"><div class="eyebrow">Manage</div><h1>Settings</h1><p>Villas, staff, season, and demo controls.</p></div>`;
+  let html=`<div class="page-head"><div class="eyebrow">Manage</div><h1>Settings</h1><p>Villas, team access, and season.</p></div>`;
   html+=`<div class="seg"><button class="${state.settingsTab==='villas'?'on':''}" onclick="setTab('villas')">Villas</button><button class="${state.settingsTab==='staff'?'on':''}" onclick="setTab('staff')">Staff</button><button class="${state.settingsTab==='season'?'on':''}" onclick="setTab('season')">Season</button></div>`;
   if(state.settingsTab==='villas'){
     const active=state.villas.filter(v=>!v.archived),arch=state.villas.filter(v=>v.archived);
@@ -609,14 +706,20 @@ function viewSettings(){
     html+=active.map(v=>villaRow(v,false)).join('');
     if(arch.length)html+=`<div style="margin-top:18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Archived (history kept)</div>`+arch.map(v=>villaRow(v,true)).join('');
   }else if(state.settingsTab==='staff'){
-    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h3 style="font-size:18px">${state.staff.length} team members</h3><button class="btn green tiny" onclick="editStaff()">+ Add staff</button></div>`;
-    html+=state.staff.map((s,i)=>`<div class="list-row"><div class="avatar" style="background:${avColor(s.name)}">${esc(initials(s.name))}</div><div><div class="nm">${esc(s.name)}</div><div class="meta"><span class="tag role">${esc(s.role)}</span></div></div><div class="actions"><button class="btn tiny danger" onclick="delStaff(${i})">✕</button></div></div>`).join('');
+    const mgr=isManager();
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="font-size:18px">${state.staff.length} team member${state.staff.length===1?'':'s'}</h3>${mgr?'<button class="btn green tiny" onclick="addLoginHelp()">+ Add login</button>':''}</div>`;
+    html+=`<p style="color:var(--muted);font-size:13px;margin-bottom:14px">People appear here after their first sign-in. <b>Disabling</b> access blocks their login but keeps every record they made.</p>`;
+    html+=state.staff.map(s=>{const me=AUTH.currentUser&&s.uid===AUTH.currentUser.uid;const act=s.active!==false;
+      return `<div class="list-row"><div class="avatar" style="background:${avColor(s.name)}">${esc(initials(s.name))}</div>
+      <div><div class="nm">${esc(s.name)}${me?' <span class="tag role">you</span>':''}</div><div class="meta"><span class="tag role">${esc(s.role)}</span>${act?'':'<span class="tag" style="background:var(--red-soft);color:var(--red)">access off</span>'}</div></div>
+      <div class="actions">${(mgr&&!me)?(act?`<button class="btn tiny danger" onclick="setStaffActive('${s.uid}',false)">Disable</button>`:`<button class="btn tiny subtle" onclick="setStaffActive('${s.uid}',true)">Enable</button>`):''}</div></div>`;}).join('');
+    if(!state.staff.length)html+=`<div class="empty">No team members yet — your own account appears once you're signed in.</div>`;
   }else{
     html+=`<div class="card" style="max-width:560px;margin-bottom:18px"><div class="card-head"><span class="ic">☀</span><h3>Pool cleaning season</h3></div>
       <p style="color:var(--muted);font-size:14px;margin-bottom:18px">How often pools should be cleaned before the dashboard flags them.</p>
       <div class="checks"><label class="chk ${state.season==='summer'?'on':''}" onclick="setSeason('summer')">☀ Summer — every 3 days</label><label class="chk ${state.season==='winter'?'on':''}" onclick="setSeason('winter')">❄ Winter — every 7 days</label></div>
       <div style="margin-top:18px;padding:13px 15px;background:var(--olive-soft);border-radius:11px;font-size:13.5px;color:var(--olive-dark)">Currently <b>${state.season}</b> — flagged after <b>${threshold()} days</b>.</div></div>`;
-    html+=`<div class="card" style="max-width:560px"><div class="card-head"><span class="ic">↺</span><h3>Demo data</h3></div><p style="color:var(--muted);font-size:14px;margin-bottom:16px">Reset everything back to the sample villas and records.</p><button class="btn danger tiny" onclick="resetDemo()">Reset demo data</button></div>`;
+    html+=`<div class="card" style="max-width:560px"><div class="card-head"><span class="ic">☁️</span><h3>Storage</h3></div><p style="color:var(--muted);font-size:14px;line-height:1.6">Data is stored in your free Firebase cloud and shared across all devices. To keep it tiny, the app automatically keeps the most recent <b>${MAX_RECORDS}</b> log entries and removes older ones — you'll never get close to the free limit.</p></div>`;
   }
   return html;
 }
@@ -624,23 +727,29 @@ function villaRow(v,arch){return `<div class="list-row ${arch?'arch':''}"><div c
   <div><div class="nm link" onclick="openProfile(${v.id})">${esc(v.name)}</div><div class="meta">${v.pool?'<span class="tag">Pool</span>':'<span class="tag">No pool</span>'}${v.heated?'<span class="tag heat">Heated **</span>':''}${v.garden?'<span class="tag">Garden</span>':''}${v.cot?'<span class="tag cot">Baby cot *</span>':''}</div></div>
   <div class="actions">${arch?`<button class="btn tiny subtle" onclick="restoreVilla(${v.id})">Restore</button>`:`<button class="btn tiny subtle" onclick="editVilla(${v.id})">Edit</button><button class="btn tiny danger" onclick="archiveVilla(${v.id})">Archive</button>`}</div></div>`;}
 function setTab(t){state.settingsTab=t;render();}
-function setSeason(s){state.season=s;save();toast('Season set to '+s);render();}
-function resetDemo(){openConfirm('Reset to demo data? Your changes will be cleared.',()=>{try{localStorage.removeItem('propmanager_v3');}catch(e){}seedDemo();save();state.poolVilla=null;state.weekOffset=0;toast('Demo data restored');render();});}
+function setSeason(s){dbSeason(s);toast('Season set to '+s);}
+function resetDemo(){toast('Not available on the live cloud version');}
 function editVilla(id){const v=id?villa(id):{name:'',pool:true,heated:false,garden:true,cot:false};
   openModal(`<h3>${id?'Edit':'Add'} villa</h3><div class="fg" style="margin-bottom:14px"><label>Villa name</label><input id="m_name" value="${esc(v.name)}" placeholder="e.g. Villa Sunrise"></div>
     <div class="checks">${chk('m_pool','Has pool',v.pool)}${chk('m_heated','Heated **',v.heated)}${chk('m_garden','Has garden',v.garden)}${chk('m_cot','Baby cot *',v.cot)}</div>
     <div class="modal-actions"><button class="btn green" onclick="saveVilla(${id||0})">Save</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);}
 function saveVilla(id){const name=document.getElementById('m_name').value.trim();if(!name){toast('Please enter a name');return;}
   const data={pool:document.getElementById('m_pool').checked,heated:document.getElementById('m_heated').checked,garden:document.getElementById('m_garden').checked,cot:document.getElementById('m_cot').checked};
-  if(id)Object.assign(villa(id),{name,...data});else state.villas.push({id:Math.max(0,...state.villas.map(v=>v.id))+1,name,archived:false,...data});
-  save();closeModal();toast('Villa saved ✓');render();}
-function archiveVilla(id){const v=villa(id);openConfirm(`Archive ${esc(v.name)}? Its history stays, but it's hidden from lists.`,()=>{v.archived=true;save();toast('Villa archived (history kept)');render();});}
-function restoreVilla(id){villa(id).archived=false;save();toast('Villa restored');render();}
-function editStaff(){openModal(`<h3>Add staff member</h3><div class="fg" style="margin-bottom:14px"><label>Name</label><input id="m_sname" placeholder="e.g. Eleni"></div>
-    <div class="fg"><label>Role</label><select id="m_srole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
-    <div class="modal-actions"><button class="btn green" onclick="saveStaff()">Add</button><button class="btn subtle" onclick="closeModal()">Cancel</button></div>`);}
-function saveStaff(){const name=document.getElementById('m_sname').value.trim();if(!name){toast('Please enter a name');return;}state.staff.push({name,role:document.getElementById('m_srole').value});save();closeModal();toast('Staff added ✓');populateLogin();render();}
-function delStaff(i){const s=state.staff[i];openConfirm(`Remove ${esc(s.name)}?`,()=>{state.staff.splice(i,1);save();toast('Removed');populateLogin();render();});}
+  const v=id?{...villa(id),id,name,...data}:{id:Math.max(0,...state.villas.map(v=>v.id))+1,name,archived:false,...data};
+  dbPut('villas',v);closeModal();toast('Villa saved ✓');}
+function archiveVilla(id){const v=villa(id);openConfirm(`Archive ${esc(v.name)}? Its history stays, but it's hidden from lists.`,()=>{dbPut('villas',{...v,archived:true});toast('Villa archived (history kept)');});}
+function restoreVilla(id){const v=villa(id);dbPut('villas',{...v,archived:false});toast('Villa restored');}
+function isManager(){return state.user&&(state.user.role==='admin'||state.user.role==='manager');}
+function setStaffActive(uid,on){
+  if(!isManager()){toast('Only an admin or manager can change access');return;}
+  if(AUTH.currentUser&&uid===AUTH.currentUser.uid){toast("You can't change your own access");return;}
+  if(!on){const s=state.staff.find(x=>x.uid===uid);const activeAdmins=state.staff.filter(x=>x.role==='admin'&&x.active!==false);
+    if(s&&s.role==='admin'&&activeAdmins.length<=1){toast("Can't disable the last admin");return;}}
+  DB.collection('staff').doc(uid).update({active:on}).then(()=>toast(on?'Access enabled ✓':'Access disabled — records kept')).catch(showErr);
+}
+function addLoginHelp(){openModal(`<h3>Add a new login</h3><p style="color:var(--muted);font-size:14px;line-height:1.6">New logins are created once in the Firebase console (free):</p>
+  <ol style="font-size:14px;line-height:1.75;margin:12px 0 0 18px"><li>Firebase console → <b>Authentication</b> → <b>Users</b> → <b>Add user</b></li><li>Email: their name as <b>name@propmanager.app</b> — lowercase, letters/numbers only, no spaces (e.g. Maria → <b>maria@propmanager.app</b>)</li><li>Set a password and share it with them</li><li>They sign in with their <b>name</b> + that password, and they'll appear in this list automatically</li></ol>
+  <div class="modal-actions"><button class="btn subtle" onclick="closeModal()">Got it</button></div>`);}
 
 function emptyState(msg){return `<div class="page-head"><h1>—</h1></div><div class="card"><div class="empty">${esc(msg)}</div></div>`;}
 
@@ -651,20 +760,66 @@ function openConfirm(msg,onYes){openModal(`<h3>${msg}</h3><div class="modal-acti
 document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal();});
 let toastT;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
 
-/* ---------- AUTH ---------- */
-function populateLogin(){document.getElementById('loginName').innerHTML=state.staff.map(s=>`<option value="${esc(s.name)}">${esc(s.name)} — ${s.role}</option>`).join('');}
-function login(){const name=document.getElementById('loginName').value;const u=state.staff.find(s=>s.name===name)||{name,role:'staff'};state.user=u;
-  document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
+/* ---------- AUTH (Firebase) ---------- */
+function slug(name){return (name||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');}
+function loginMsg(t,ok){const e=document.getElementById('loginMsg');if(!e)return;e.textContent=t||'';e.className='login-msg'+(ok?' ok':'');}
+function login(){
+  if(!AUTH){loginMsg('Cloud not loaded — check your internet and refresh');return;}
+  const name=document.getElementById('loginName').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  if(!name){loginMsg('Type your name');return;}
+  if(!pass){loginMsg('Type your password');return;}
+  _loginName=name;loginMsg('Signing in…',true);
+  AUTH.signInWithEmailAndPassword(slug(name)+'@propmanager.app',pass).catch(e=>{const c=(e&&e.code)||'';
+    if(c.indexOf('wrong-password')>=0||c.indexOf('invalid-credential')>=0||c.indexOf('user-not-found')>=0)loginMsg('Wrong name or password');
+    else if(c.indexOf('too-many')>=0)loginMsg('Too many tries — wait a minute, then try again');
+    else if(c.indexOf('network')>=0)loginMsg('No internet connection');
+    else loginMsg(e.message||'Sign-in failed');});
+}
+function showApp(u){document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
   document.getElementById('sideName').textContent=u.name;document.getElementById('sideRole').textContent=u.role;
   const av=initials(u.name),col=avColor(u.name);['sideAvatar','tbAvatar'].forEach(id=>{const e=document.getElementById(id);e.textContent=av;e.style.background=col;});
   state.view='dashboard';state.history=[];render();}
-function logout(){state.user=null;document.getElementById('app').style.display='none';document.getElementById('login').style.display='flex';}
+function showLogin(){state.user=null;stopListeners();const a=document.getElementById('app');if(a)a.style.display='none';const l=document.getElementById('login');if(l)l.style.display='flex';}
+function logout(){if(AUTH)AUTH.signOut().catch(showErr);}
+async function onSignedIn(user){
+  try{
+    const ref=DB.collection('staff').doc(user.uid);
+    const snap=await ref.get();
+    if(!snap.exists){
+      const all=await DB.collection('staff').get();
+      const first=all.empty;
+      const name=_loginName||((user.email||'').split('@')[0])||'User';
+      const role=first?'admin':'staff';
+      await ref.set({name,role,active:true,email:user.email});
+      ME={name,role,active:true};
+      if(first)await seedVillas();
+    }else{
+      ME=snap.data();
+      if(ME.active===false){await AUTH.signOut();showLogin();loginMsg('Your access has been disabled. Please contact your admin.');return;}
+    }
+    state.user={name:ME.name,role:ME.role};loginMsg('');
+    startListeners();showApp(state.user);
+  }catch(e){showErr(e);loginMsg('Could not load your data — screenshot the red bar at the top.');}
+}
+async function seedVillas(){
+  const vn=['Celini','Pelagos','Athena','Dia','Aquarious','Hera','Tamara','De Lujo','Poseidon','Tighi','Bella','Tauros','Nereus','Lofos','Isabelle','Boss'];
+  const heat={Aquarious:1,'De Lujo':1,Celini:1},cot={'De Lujo':1,Pelagos:1};
+  const batch=DB.batch();
+  vn.forEach((n,i)=>{const id=i+1;batch.set(DB.collection('villas').doc(String(id)),{id,name:n,pool:n!=='Boss',heated:!!heat[n],garden:true,cot:!!cot[n],archived:false});});
+  batch.set(DB.collection('settings').doc('app'),{season:'summer'});
+  await batch.commit();
+}
 document.getElementById('loginBtn').addEventListener('click',login);
 document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+document.getElementById('loginName').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginPass').focus();});
 
 /* ---------- INIT ---------- */
-if(!load())seedDemo();
-populateLogin();
+if(window._fbInitErr)showErr(window._fbInitErr);
+seedDemo();/* in-memory defaults so the UI isn't blank for the first moment; cloud listeners overwrite these */
+state.records=[];state.guests=[];state.pending=[];state.resolved=[];state.otherWork=[];state.staff=[];
+if(AUTH)AUTH.onAuthStateChanged(u=>{if(u)onSignedIn(u);else showLogin();});
+
 </script>
 </body>
 </html>
