@@ -250,7 +250,7 @@
 <script>
 /* ===== PropManager v4 — live cloud (Firebase Auth + Firestore). ===== */
 const firebaseConfig = {
-  apiKey: "AIzaSyBuVqaQ7XcZYqfNrDePUFeyU8lNl8nt68",
+  apiKey: "AIzaSyBuVqaQ7XcZYqfNrDePUFeyU-8lNl8nt68",
   authDomain: "propmanager-696a0.firebaseapp.com",
   projectId: "propmanager-696a0",
   storageBucket: "propmanager-696a0.firebasestorage.app",
@@ -765,15 +765,19 @@ function slug(name){return (name||'').trim().toLowerCase().replace(/[^a-z0-9]/g,
 function loginMsg(t,ok){const e=document.getElementById('loginMsg');if(!e)return;e.textContent=t||'';e.className='login-msg'+(ok?' ok':'');}
 function login(){
   if(!AUTH){loginMsg('Cloud not loaded — check your internet and refresh');return;}
-  const name=document.getElementById('loginName').value.trim();
+  const raw=document.getElementById('loginName').value.trim();
   const pass=document.getElementById('loginPass').value;
-  if(!name){loginMsg('Type your name');return;}
+  if(!raw){loginMsg('Type your name');return;}
   if(!pass){loginMsg('Type your password');return;}
-  _loginName=name;loginMsg('Signing in…',true);
-  AUTH.signInWithEmailAndPassword(slug(name)+'@propmanager.app',pass).catch(e=>{const c=(e&&e.code)||'';
+  const hasAt=raw.indexOf('@')>=0;
+  const email=hasAt?raw.toLowerCase():slug(raw)+'@propmanager.app';
+  _loginName=hasAt?raw.split('@')[0]:raw;
+  loginMsg('Signing in…',true);
+  AUTH.signInWithEmailAndPassword(email,pass).catch(e=>{const c=(e&&e.code)||'';
     if(c.indexOf('wrong-password')>=0||c.indexOf('invalid-credential')>=0||c.indexOf('user-not-found')>=0)loginMsg('Wrong name or password');
     else if(c.indexOf('too-many')>=0)loginMsg('Too many tries — wait a minute, then try again');
     else if(c.indexOf('network')>=0)loginMsg('No internet connection');
+    else if(c.indexOf('api-key')>=0)loginMsg('App key invalid — tell the admin to update the config');
     else loginMsg(e.message||'Sign-in failed');});
 }
 function showApp(u){document.getElementById('login').style.display='none';document.getElementById('app').style.display='block';
